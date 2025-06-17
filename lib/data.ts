@@ -121,10 +121,10 @@ const MOCK_TENDERS: Tender[] = [
 ]
 
 // Funzione per convertire i dati dal database al formato dell'applicazione
-function mapDatabaseToTender(dbData: any, enteData?: any): Tender {
+function mapDatabaseToTender(dbData: any, enteData?: any, lottoData?: any, cpvData?: any): Tender {
   return {
     id: dbData.id.toString(),
-    cig: dbData.cig || undefined, // Aggiunto il CIG dal database
+    cig: dbData.cig || undefined,
     titolo: dbData.descrizione?.substring(0, 100) + "..." || "Titolo non disponibile",
     descrizione: dbData.descrizione || "Descrizione non disponibile",
     planificazione: "Pianificazione",
@@ -132,15 +132,8 @@ function mapDatabaseToTender(dbData: any, enteData?: any): Tender {
     pubblicazione: dbData.data_pubblicazione || new Date().toISOString(),
     scadenza: dbData.scadenza_offerta || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     inizioGara: dbData.data_pubblicazione || new Date().toISOString(),
-    cpv: "CPV" + Math.random().toString(36).substr(2, 6),
-    categoria:
-      dbData.natura_principale_id === 1
-        ? "Lavori"
-        : dbData.natura_principale_id === 2
-          ? "Forniture"
-          : dbData.natura_principale_id === 3
-            ? "Servizi"
-            : "Non specificata",
+    cpv: cpvData ? cpvData.codice : "CPV non specificato",
+    categoria: cpvData ? cpvData.descrizione : "Non specificata",
     procedura: "Procedura Aperta",
     stazioneAppaltante: {
       id: enteData?.id?.toString() || "",
@@ -305,7 +298,37 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       }
     }
 
-    return mapDatabaseToTender(garaData, enteData)
+    // Otteniamo il lotto principale della gara
+    const { data: lottoData, error: lottoError } = await supabase
+      .from("lotto")
+      .select("*")
+      .eq("gara_id", garaData.id)
+      .order("id", { ascending: true })
+      .limit(1)
+      .single()
+
+    if (lottoError) {
+      console.error("Errore nel recupero del lotto:", lottoError)
+      return mapDatabaseToTender(garaData, enteData)
+    }
+
+    if (!lottoData || !lottoData.cpv_id) {
+      return mapDatabaseToTender(garaData, enteData)
+    }
+
+    // Otteniamo la categoria CPV
+    const { data: cpvData, error: cpvError } = await supabase
+      .from("categoria_cpv")
+      .select("*")
+      .eq("id", lottoData.cpv_id)
+      .single()
+
+    if (cpvError) {
+      console.error("Errore nel recupero della categoria CPV:", cpvError)
+      return mapDatabaseToTender(garaData, enteData, lottoData)
+    }
+
+    return mapDatabaseToTender(garaData, enteData, lottoData, cpvData)
   } catch (error) {
     console.error("Errore generale nel recupero della gara:", error)
     return MOCK_TENDERS.find((tender) => tender.id === id)
