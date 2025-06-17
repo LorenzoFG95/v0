@@ -249,7 +249,10 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
     })
   } catch (error) {
     console.error("Errore generale nel recupero delle gare:", error)
-    return MOCK_TENDERS
+    return { 
+      tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
+      total: MOCK_TENDERS.length 
+    }
   }
 }
 

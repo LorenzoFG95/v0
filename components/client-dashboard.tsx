@@ -193,6 +193,14 @@ export function ClientDashboard({
     setShowFilters(!showFilters)
   }
 
+  // Calculate total pages (move this before the return statement)
+  const totalPages = Math.ceil(totalItems / pageSize)
+  
+  // Function to change page (move this before the return statement)
+  const changePage = (page: number) => {
+    router.push(`${pathname}?page=${page}`)
+  }
+
   return (
     <div className="space-y-6">
       {/* Search Bar */}

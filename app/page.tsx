@@ -10,7 +10,10 @@ function isDatabaseConfigured(): boolean {
 
 export default async function Home({ searchParams }: { searchParams: { page?: string } }) {
   const databaseConfigured = isDatabaseConfigured()
-  const currentPage = searchParams.page ? parseInt(searchParams.page) : 1
+  
+  // Attendi searchParams prima di usarlo
+  const params = await searchParams
+  const currentPage = params.page ? parseInt(params.page) : 1
 
   if (!databaseConfigured) {
     return (
