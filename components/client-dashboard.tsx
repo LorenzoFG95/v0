@@ -391,67 +391,52 @@ export function ClientDashboard({
           )}
         </div>
       </div>
-
-      // Calcola il numero totale di pagine
-      const totalPages = Math.ceil(totalItems / pageSize)
       
-      // Funzione per cambiare pagina
-      const changePage = (page: number) => {
-        router.push(`${pathname}?page=${page}`)
-      }
+      {/* Results */}
+      <TenderList tenders={filteredTenders} />
       
-      // Alla fine, prima di chiudere il componente, aggiungiamo la paginazione
-      return (
-        <div className="space-y-6">
-          {/* Codice esistente... */}
-          
-          {/* Results */}
-          <TenderList tenders={filteredTenders} />
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                {currentPage > 1 && (
-                  <PaginationItem>
-                    <PaginationPrevious onClick={() => changePage(currentPage - 1)} />
-                  </PaginationItem>
-                )}
-                
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Logica per mostrare le pagine intorno alla pagina corrente
-                  let pageNum = i + 1
-                  if (totalPages > 5) {
-                    if (currentPage > 3) {
-                      pageNum = currentPage - 3 + i
-                    }
-                    if (currentPage > totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    }
-                  }
-                  
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink 
-                        isActive={pageNum === currentPage}
-                        onClick={() => changePage(pageNum)}
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  )
-                })}
-                
-                {currentPage < totalPages && (
-                  <PaginationItem>
-                    <PaginationNext onClick={() => changePage(currentPage + 1)} />
-                  </PaginationItem>
-                )}
-              </PaginationContent>
-            </Pagination>
-          )}
-        </div>
-      )
-    }
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            {currentPage > 1 && (
+              <PaginationItem>
+                <PaginationPrevious onClick={() => changePage(currentPage - 1)} />
+              </PaginationItem>
+            )}
+            
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              // Logic to show pages around the current page
+              let pageNum = i + 1
+              if (totalPages > 5) {
+                if (currentPage > 3) {
+                  pageNum = currentPage - 3 + i
+                }
+                if (currentPage > totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                }
+              }
+              
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink 
+                    isActive={pageNum === currentPage}
+                    onClick={() => changePage(pageNum)}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              )
+            })}
+            
+            {currentPage < totalPages && (
+              <PaginationItem>
+                <PaginationNext onClick={() => changePage(currentPage + 1)} />
+              </PaginationItem>
+            )}
+          </PaginationContent>
+        </Pagination>
+      )}
+    </div>
   )
 }
