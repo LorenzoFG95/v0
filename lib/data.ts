@@ -243,10 +243,15 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
     }
 
     // Mappiamo i dati
-    return gareData.map((gara) => {
+    const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined
       return mapDatabaseToTender(gara, enteData)
     })
+    
+    return {
+      tenders: mappedTenders,
+      total: count || mappedTenders.length
+    }
   } catch (error) {
     console.error("Errore generale nel recupero delle gare:", error)
     return { 
