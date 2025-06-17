@@ -8,8 +8,9 @@ function isDatabaseConfigured(): boolean {
   return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: { page?: string } }) {
   const databaseConfigured = isDatabaseConfigured()
+  const currentPage = searchParams.page ? parseInt(searchParams.page) : 1
 
   if (!databaseConfigured) {
     return (
@@ -28,8 +29,8 @@ export default async function Home() {
   }
 
   // Get all data server-side
-  const [tenders, entiAppaltanti, categorie] = await Promise.all([
-    getTenders(),
+  const [{ tenders, total }, entiAppaltanti, categorie] = await Promise.all([
+    getTenders(currentPage, 10),
     getEntiAppaltanti(),
     getCategorieNatura(),
   ])
@@ -43,7 +44,14 @@ export default async function Home() {
           <p className="text-gray-600 mt-1">Esplora e filtra le gare d&apos;appalto pubbliche in formato OCDS</p>
         </div>
 
-        <ClientDashboard initialTenders={tenders} entiAppaltanti={entiAppaltanti} categorie={categorie} />
+        <ClientDashboard 
+          initialTenders={tenders} 
+          entiAppaltanti={entiAppaltanti} 
+          categorie={categorie} 
+          currentPage={currentPage}
+          totalItems={total}
+          pageSize={10}
+        />
       </div>
     </main>
   )

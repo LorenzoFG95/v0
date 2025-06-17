@@ -163,11 +163,14 @@ async function tableExists(supabase: any, tableName: string): Promise<boolean> {
   }
 }
 
-export async function getTenders(): Promise<Tender[]> {
+export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Tender[], total: number }> {
   // Se non abbiamo le variabili di ambiente, usa i dati mock
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     console.warn("Variabili di ambiente Supabase non configurate. Utilizzando dati di esempio.")
-    return MOCK_TENDERS
+    return { 
+      tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
+      total: MOCK_TENDERS.length 
+    }
   }
 
   try {
@@ -177,28 +180,50 @@ export async function getTenders(): Promise<Tender[]> {
     const exists = await tableExists(supabase, "gara")
     if (!exists) {
       console.warn("La tabella 'gara' non esiste. Utilizzando dati di esempio.")
-      return MOCK_TENDERS
+      return { 
+        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
+        total: MOCK_TENDERS.length 
+      }
     }
 
-    // Otteniamo prima le gare
+    // Otteniamo prima il conteggio totale
+    const { count, error: countError } = await supabase
+      .from("gara")
+      .select('*', { count: 'exact', head: true })
+
+    if (countError) {
+      console.error("Errore nel conteggio delle gare:", countError)
+      return { 
+        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
+        total: MOCK_TENDERS.length 
+      }
+    }
+
+    // Otteniamo le gare con paginazione
     const { data: gareData, error: gareError } = await supabase
       .from("gara")
       .select("*")
       .order("data_pubblicazione", { ascending: false })
-      .limit(50)
+      .range((page - 1) * pageSize, page * pageSize - 1)
 
     if (gareError) {
       console.error("Errore nel recupero delle gare:", gareError)
-      return MOCK_TENDERS
+      return { 
+        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
+        total: MOCK_TENDERS.length 
+      }
     }
 
     if (!gareData || gareData.length === 0) {
-      return MOCK_TENDERS
+      return { 
+        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
+        total: MOCK_TENDERS.length 
+      }
     }
 
     // Otteniamo gli enti appaltanti per le gare recuperate
     const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined)
-
+    
     let entiMap: Record<number, any> = {}
 
     if (entiIds.length > 0) {
