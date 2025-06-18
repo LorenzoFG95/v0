@@ -312,23 +312,53 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       return mapDatabaseToTender(garaData, enteData)
     }
 
-    if (!lottoData || !lottoData.cpv_id) {
+    if (!lottoData) {
       return mapDatabaseToTender(garaData, enteData)
     }
 
     // Otteniamo la categoria CPV
-    const { data: cpvData, error: cpvError } = await supabase
-      .from("categoria_cpv")
-      .select("*")
-      .eq("id", lottoData.cpv_id)
-      .single()
+    let cpvData = undefined
+    if (lottoData.cpv_id) {
+      const { data: cpv, error: cpvError } = await supabase
+        .from("categoria_cpv")
+        .select("*")
+        .eq("id", lottoData.cpv_id)
+        .single()
 
-    if (cpvError) {
-      console.error("Errore nel recupero della categoria CPV:", cpvError)
-      return mapDatabaseToTender(garaData, enteData, lottoData)
+      if (cpvError) {
+        console.error("Errore nel recupero della categoria CPV:", cpvError)
+      } else {
+        cpvData = cpv
+      }
     }
 
-    return mapDatabaseToTender(garaData, enteData, lottoData, cpvData)
+    // Otteniamo le categorie opera associate al lotto
+    let categorieOperaData = []
+    const { data: categorieOpera, error: categorieOperaError } = await supabase
+      .from("lotto_categoria_opera")
+      .select("categoria_opera_id")
+      .eq("lotto_id", lottoData.id)
+
+    if (!categorieOperaError && categorieOpera && categorieOpera.length > 0) {
+      const categorieIds = categorieOpera.map(item => item.categoria_opera_id)
+      
+      const { data: categorieDetails, error: categorieDetailsError } = await supabase
+        .from("categoria_opera")
+        .select("*")
+        .in("id", categorieIds)
+
+      if (!categorieDetailsError && categorieDetails) {
+        categorieOperaData = categorieDetails
+      } else {
+        console.error("Errore nel recupero dei dettagli delle categorie opera:", categorieDetailsError)
+      }
+    }
+
+    // Mappiamo i dati includendo le categorie opera
+    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData)
+    tender.categorieOpera = categorieOperaData
+    return tender
+
   } catch (error) {
     console.error("Errore generale nel recupero della gara:", error)
     return MOCK_TENDERS.find((tender) => tender.id === id)

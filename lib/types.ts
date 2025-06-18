@@ -6,6 +6,14 @@ export interface StazioneAppaltante {
   indirizzo: string
 }
 
+export interface CategoriaOpera {
+  id: string
+  id_categoria: string
+  cod_tipo_categoria: string
+  descrizione: string
+  descrizione_tipo_categoria: string
+}
+
 export interface Tender {
   id: string
   cig?: string // Aggiunto il CIG
@@ -21,4 +29,5 @@ export interface Tender {
   procedura: string
   stazioneAppaltante: StazioneAppaltante
   partecipanti?: number
+  categorieOpera?: CategoriaOpera[] // Aggiunto le categorie opera
 }

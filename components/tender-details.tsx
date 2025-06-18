@@ -127,6 +127,25 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 <div className="text-sm font-medium text-gray-500">Procedura</div>
                 <Badge variant="outline">{tender.procedura}</Badge>
               </div>
+              
+              {tender.categorieOpera && tender.categorieOpera.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium text-gray-500 mb-2">Categorie Opera</div>
+                  <div className="space-y-2">
+                    {tender.categorieOpera.map((categoria, index) => (
+                      <div key={index} className="border rounded-md p-2">
+                        <div className="flex items-center">
+                          <Badge variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"} className="mr-2">
+                            {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
+                          </Badge>
+                          <div className="font-medium">{categoria.id_categoria}</div>
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">{categoria.descrizione}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
