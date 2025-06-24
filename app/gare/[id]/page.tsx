@@ -4,8 +4,9 @@ import { TenderDetails } from "@/components/tender-details"
 import { BackButton } from "@/components/back-button"
 import { notFound } from "next/navigation"
 
-export default async function TenderPage({ params }: { params: { id: string } }) {
-  const tender = await getTenderById(params.id)
+export default async function TenderPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const tender = await getTenderById(id)
 
   if (!tender) {
     notFound()

@@ -121,14 +121,20 @@ const MOCK_TENDERS: Tender[] = [
 ]
 
 // Funzione per convertire i dati dal database al formato dell'applicazione
-function mapDatabaseToTender(dbData: any, enteData?: any, lottoData?: any, cpvData?: any): Tender {
+function mapDatabaseToTender(
+  dbData: any,
+  enteData?: any,
+  lottoData?: any,
+  cpvData?: any
+): Tender {
   return {
     id: dbData.id.toString(),
     cig: dbData.cig || undefined,
-    titolo: dbData.descrizione?.substring(0, 100) + "..." || "Titolo non disponibile",
+    titolo:
+      dbData.descrizione?.substring(0, 100) + "..." || "Titolo non disponibile",
     descrizione: dbData.descrizione || "Descrizione non disponibile",
     planificazione: "Pianificazione",
-    valore: dbData.importo_totale || 0,
+    valore: lottoData?.valore || dbData.importo_totale || 0,
     pubblicazione: dbData.data_pubblicazione || new Date().toISOString(),
     scadenza: dbData.scadenza_offerta || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     inizioGara: dbData.data_pubblicazione || new Date().toISOString(),
@@ -149,10 +155,20 @@ function mapDatabaseToTender(dbData: any, enteData?: any, lottoData?: any, cpvDa
 // Funzione per verificare se una tabella esiste
 async function tableExists(supabase: any, tableName: string): Promise<boolean> {
   try {
-    const { error } = await supabase.from(tableName).select("id").limit(1)
-    return !error
+    const { error } = await supabase.from(tableName).select("id").limit(1);
+    if (error) {
+      console.error(`Errore nella verifica della tabella ${tableName}:`, error);
+      // Verifica se l'errore è di connessione
+      if (error.message?.includes("getaddrinfo failed") || 
+          error.message?.includes("connection") ||
+          error.message?.includes("network")) {
+        console.error("Errore di connessione a Supabase. Verificare le credenziali e la connessione di rete.");
+      }
+    }
+    return !error;
   } catch (error) {
-    return false
+    console.error(`Errore nella verifica della tabella ${tableName}:`, error);
+    return false;
   }
 }
 

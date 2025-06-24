@@ -1,12 +1,20 @@
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import type { Tender } from "@/lib/types"
-import { formatCurrency, formatDate } from "@/lib/utils"
-import { FavoriteButton } from "@/components/favorite-button"
-import { Building, Calendar, Euro, FileText, Users, Clock, Hash } from "lucide-react"
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type { Tender } from "@/lib/types";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { FavoriteButton } from "@/components/favorite-button";
+import {
+  Building,
+  Calendar,
+  Euro,
+  FileText,
+  Users,
+  Clock,
+  Hash,
+} from "lucide-react";
 
 interface TenderDetailsProps {
-  tender: Tender
+  tender: Tender;
 }
 
 export function TenderDetails({ tender }: TenderDetailsProps) {
@@ -24,8 +32,12 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           <div className="flex items-center mb-4 p-3 bg-blue-50 rounded-lg">
             <Hash className="text-blue-600 mr-2" size={20} />
             <div>
-              <div className="text-sm text-blue-600 font-medium">Codice Identificativo Gara</div>
-              <div className="font-mono text-lg text-blue-800">{tender.cig}</div>
+              <div className="text-sm text-blue-600 font-medium">
+                Codice Identificativo Gara
+              </div>
+              <div className="font-mono text-lg text-blue-800">
+                {tender.cig}
+              </div>
             </div>
           </div>
         )}
@@ -49,7 +61,9 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
             <div className="ml-3">
               <div className="text-sm text-gray-500">Pubblicazione</div>
-              <div className="font-medium">{formatDate(tender.pubblicazione)}</div>
+              <div className="font-medium">
+                {formatDate(tender.pubblicazione)}
+              </div>
             </div>
           </div>
 
@@ -69,7 +83,9 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
             <div className="ml-3">
               <div className="text-sm text-gray-500">Partecipanti</div>
-              <div className="font-medium">{tender.partecipanti || "Non disponibile"}</div>
+              <div className="font-medium">
+                {tender.partecipanti || "Non disponibile"}
+              </div>
             </div>
           </div>
         </div>
@@ -86,18 +102,28 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <div className="font-medium">{tender.stazioneAppaltante.nome}</div>
-                <div className="text-sm text-gray-500">ID: {tender.stazioneAppaltante.id}</div>
+                <div className="font-medium">
+                  {tender.stazioneAppaltante.nome}
+                </div>
+                <div className="text-sm text-gray-500">
+                  ID: {tender.stazioneAppaltante.id}
+                </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">Contatto</div>
+                <div className="text-sm font-medium text-gray-500">
+                  Contatto
+                </div>
                 <div>{tender.stazioneAppaltante.contatto}</div>
-                <div className="text-sm text-blue-600">{tender.stazioneAppaltante.email}</div>
+                <div className="text-sm text-blue-600">
+                  {tender.stazioneAppaltante.email}
+                </div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">Indirizzo</div>
+                <div className="text-sm font-medium text-gray-500">
+                  Indirizzo
+                </div>
                 <div>{tender.stazioneAppaltante.indirizzo}</div>
               </div>
             </div>
@@ -114,33 +140,54 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <div className="text-sm font-medium text-gray-500">Codice CPV</div>
+                <div className="text-sm font-medium text-gray-500">
+                  Codice CPV
+                </div>
                 <div>{tender.cpv}</div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">Categoria</div>
+                <div className="text-sm font-medium text-gray-500">
+                  Categoria
+                </div>
                 <div>{tender.categoria}</div>
               </div>
 
               <div>
-                <div className="text-sm font-medium text-gray-500">Procedura</div>
+                <div className="text-sm font-medium text-gray-500">
+                  Procedura
+                </div>
                 <Badge variant="outline">{tender.procedura}</Badge>
               </div>
-              
+
               {tender.categorieOpera && tender.categorieOpera.length > 0 && (
                 <div>
-                  <div className="text-sm font-medium text-gray-500 mb-2">Categorie Opera</div>
+                  <div className="text-sm font-medium text-gray-500 mb-2">
+                    Categorie Opera
+                  </div>
                   <div className="space-y-2">
                     {tender.categorieOpera.map((categoria, index) => (
                       <div key={index} className="border rounded-md p-2">
                         <div className="flex items-center">
-                          <Badge variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"} className="mr-2">
-                            {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
+                          <Badge
+                            variant={
+                              categoria.cod_tipo_categoria === "P"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="mr-2"
+                          >
+                            {categoria.cod_tipo_categoria === "P"
+                              ? "Prevalente"
+                              : "Scorporabile"}
                           </Badge>
-                          <div className="font-medium">{categoria.id_categoria}</div>
+                          <div className="font-medium">
+                            {categoria.id_categoria}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">{categoria.descrizione}</div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {categoria.descrizione}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -159,24 +206,30 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
               <div className="relative">
                 <div className="absolute -left-[25px] bg-blue-600 rounded-full w-4 h-4"></div>
                 <div className="font-medium">Pubblicazione</div>
-                <div className="text-sm text-gray-500">{formatDate(tender.pubblicazione)} 06:00</div>
+                <div className="text-sm text-gray-500">
+                  {formatDate(tender.pubblicazione)} 06:00
+                </div>
               </div>
 
               <div className="relative">
                 <div className="absolute -left-[25px] bg-green-600 rounded-full w-4 h-4"></div>
                 <div className="font-medium">Inizio Gara</div>
-                <div className="text-sm text-gray-500">{formatDate(tender.inizioGara)} 06:00</div>
+                <div className="text-sm text-gray-500">
+                  {formatDate(tender.inizioGara)} 06:00
+                </div>
               </div>
 
               <div className="relative">
                 <div className="absolute -left-[25px] bg-red-600 rounded-full w-4 h-4"></div>
                 <div className="font-medium">Scadenza Gara</div>
-                <div className="text-sm text-gray-500">{formatDate(tender.scadenza)} 12:00</div>
+                <div className="text-sm text-gray-500">
+                  {formatDate(tender.scadenza)} 12:00
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

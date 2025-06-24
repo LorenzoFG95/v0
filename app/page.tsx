@@ -2,6 +2,8 @@ import { Header } from "@/components/header"
 import { getTenders, getEntiAppaltanti, getCategorieNatura } from "@/lib/data"
 import { DatabaseSetupGuide } from "@/components/database-setup-guide"
 import { ClientDashboard } from "@/components/client-dashboard"
+import { ConnectionStatus } from "@/components/connection-status";
+import { createClient } from "@/utils/supabase/server";
 
 // Check if database is configured
 function isDatabaseConfigured(): boolean {
