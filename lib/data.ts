@@ -309,19 +309,51 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
       }
     }
 
+    // Recuperiamo i dati CPV per ogni lotto
+    const cpvPromises = gareData.map(async (gara) => {
+      const lottoData = lottiMap[gara.id];
+      if (lottoData?.cpv_id) {
+        const { data: cpv, error: cpvError } = await supabase
+          .from("categoria_cpv")
+          .select("*")
+          .eq("id", lottoData.cpv_id)
+          .single();
+    
+        if (cpvError) {
+          console.error("Errore nel recupero della categoria CPV:", cpvError);
+          return { garaId: gara.id, cpvData: undefined };
+        } else {
+          return { garaId: gara.id, cpvData: cpv };
+        }
+      }
+      return { garaId: gara.id, cpvData: undefined };
+    });
+    
+    const cpvResults = await Promise.all(cpvPromises);
+    const cpvMap = cpvResults.reduce((acc, result) => {
+      if (result) {
+        acc[result.garaId] = result.cpvData;
+      }
+      return acc;
+    }, {});
+    
     // Mappiamo i dati includendo le categorie opera
     const mappedTenders = gareData.map((gara) => {
-      const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined
-      const lottoData = lottiMap[gara.id]
-      const cpvData = lottoData?.cpv_id ? undefined : undefined // Qui si potrebbe recuperare anche il CPV
+      const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined;
+      const lottoData = lottiMap[gara.id];
+      const cpvData = cpvMap[gara.id as keyof typeof cpvMap];
       
-      const tender = mapDatabaseToTender(gara, enteData, lottoData, cpvData)
+      const tender = mapDatabaseToTender(gara, enteData, lottoData, cpvData); 
       
       // Aggiungiamo le categorie opera se disponibili
       if (lottoData && categorieOperaMap[lottoData.id]) {
-        tender.categorieOpera = categorieOperaMap[lottoData.id]
+        tender.categorieOpera = categorieOperaMap[lottoData.id].sort((a, b) => {
+          // Ordina prima le categorie prevalenti (P) e poi le scorporabili
+          if (a.cod_tipo_categoria === "P" && b.cod_tipo_categoria !== "P") return -1;
+          if (a.cod_tipo_categoria !== "P" && b.cod_tipo_categoria === "P") return 1;
+          return 0;
+        });
       }
-      
       return tender
     })
     
@@ -440,7 +472,12 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
             ...categoria,
             cod_tipo_categoria: linkRecord?.ruolo || "S" // Usiamo il ruolo dalla tabella lotto_categoria_opera
           }
-        })
+        }).sort((a, b) => {
+        // Ordina prima le categorie prevalenti (P) e poi le scorporabili
+        if (a.cod_tipo_categoria === "P" && b.cod_tipo_categoria !== "P") return -1;
+        if (a.cod_tipo_categoria !== "P" && b.cod_tipo_categoria === "P") return 1;
+        return 0;
+      });
       } else {
         console.error("Errore nel recupero dei dettagli delle categorie opera:", categorieDetailsError)
       }

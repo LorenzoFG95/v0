@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Calendar, Euro, Heart, Hash } from "lucide-react"
+import { Calendar, Euro, Bookmark, Hash } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
@@ -37,13 +37,13 @@ export function TenderCard({ tender }: TenderCardProps) {
             {tender.planificazione}
           </Badge>
           <Button variant="ghost" size="icon" onClick={handleFavoriteClick} className="h-8 w-8">
-            <Heart size={18} className={favorite ? "fill-red-500 text-red-500" : ""} />
+            <Bookmark size={18} className={favorite ? "fill-red-500 text-red-500" : ""} />
           </Button>
         </div>
-        <h3 className="font-bold text-lg line-clamp-2">{tender.titolo}</h3>
+        <h3 className="font-bold text-lg line-clamp-2">{tender.stazioneAppaltante.nome}</h3>
       </CardHeader>
       <CardContent className="pb-2">
-        <p className="text-sm text-gray-600 line-clamp-3 mb-4">{tender.descrizione}</p>
+        <p className="text-sm text-gray-600 line-clamp-2 mb-4">{tender.descrizione}</p>
 
         {tender.cig && (
           <div className="flex items-center text-sm mb-2">
@@ -70,11 +70,10 @@ export function TenderCard({ tender }: TenderCardProps) {
         
         {tender.categorieOpera && tender.categorieOpera.length > 0 && (
           <div className="mt-3">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex justify-end flex-wrap gap-1">
               {tender.categorieOpera
                 .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
                 .map((categoria, index) => (
-
                 <HoverCard key={index}>
                   <HoverCardTrigger asChild>
                     <Badge 
@@ -95,6 +94,24 @@ export function TenderCard({ tender }: TenderCardProps) {
                   </HoverCardContent>
                 </HoverCard>
               ))}
+              
+              {/* Mostra CPV per categorie fs o fb */}
+              {tender.cpv && tender.cpv !== "CPV non specificato" && tender.categorieOpera.some(cat => 
+                cat.id_categoria.toLowerCase() === 'fs' || cat.id_categoria.toLowerCase() === 'fb') && (
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Badge variant="outline" className="cursor-help">
+                      {tender.cpv}
+                    </Badge>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold">Codice CPV</h4>
+                      <p className="text-sm">{tender.categoria}</p>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              )}
             </div>
           </div>
         )}
@@ -103,7 +120,9 @@ export function TenderCard({ tender }: TenderCardProps) {
         <div className="flex items-center gap-2">
           <Badge variant={tender.procedura === "Procedura Aperta" ? "default" : "secondary"}>{tender.procedura}</Badge>
         </div>
-        <div className="text-sm text-gray-500">Scade: {formatDate(tender.scadenza)}</div>
+        <div className="text-sm font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md">
+          Scade: {formatDate(tender.scadenza)}
+        </div>
       </CardFooter>
     </Card>
   )
