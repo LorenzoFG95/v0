@@ -339,7 +339,62 @@ def process_categorie_opera(bandi: List[Dict]) -> Dict[str, int]:
     return cat_map
 
 
-def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: Dict[str, int],
+def process_categorie_cpv(bandi: List[Dict]) -> Dict[str, int]:
+    """
+    Deduplica le categorie CPV (COD_CPV), esegue upsert su `categoria_cpv`
+    e restituisce una mappa code → id (PK autoincrement di Supabase).
+    """
+    print("Elaborazione categorie CPV…")
+    seen: Dict[str, str] = {}           # code → descrizione
+    for item in bandi:
+        bando_data = item.get("cig_details", {}).get("bando", {})
+        if isinstance(bando_data, str):
+            try:
+                if bando_data.strip().upper() == "N/A":
+                    continue
+                bando_data = json.loads(bando_data)
+            except json.JSONDecodeError:
+                continue
+        
+        cpv_list = bando_data.get("CPV", [])
+        if not cpv_list:
+            continue
+        if isinstance(cpv_list, str):
+            try:
+                if cpv_list.strip().upper() == "N/A":
+                    continue
+                cpv_list = json.loads(cpv_list)
+            except json.JSONDecodeError:
+                continue
+        
+        for c in cpv_list:
+            code = c.get("COD_CPV")
+            desc = c.get("DESCRIZIONE_CPV")
+            if code and desc:
+                seen[code] = desc
+
+    cpv_map: Dict[str, int] = {}
+    for code, desc in seen.items():
+        try:
+            res = (
+                supabase
+                .table("categoria_cpv")
+                .upsert(
+                    {"codice": code, "descrizione": desc},
+                    on_conflict="codice",
+                    returning="representation"
+                )
+                .execute()
+            )
+            cpv_map[code] = res.data[0]["id"]
+        except Exception as exc:
+            print(f"  ↳ errore categoria CPV {code}: {exc}")
+
+    print(f"✔  {len(cpv_map)} categorie CPV inserite/aggiornate")
+    return cpv_map
+
+
+def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: Dict[str, int], cpv_map: Dict[str, int],
                       natura_map: Dict[str, int], criterio_map: Dict[str, int], stato_map: Dict[str, int]):
     """Elabora i dati di gare, lotti e avvisi."""
     print("Elaborazione gare, lotti e avvisi…")
@@ -367,7 +422,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
         if not ente_id:
             continue                        # ente non caricato → saltiamo
 
-                # Estrai natura_principale, criterio_aggiudicazione e stato_procedura
+        # Estrai natura_principale, criterio_aggiudicazione e stato_procedura
         natura_principale = None
         criterio_aggiudicazione = None
         stato_procedura = None
@@ -381,6 +436,29 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                     criterio_aggiudicazione = items[0].get("criteri_aggiudicazione")
         
         # Se non trovati, cerca nei dettagli CIG
+        if not natura_principale and bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO"):
+            natura_principale = bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO")
+        
+        # Estrai il codice CPV dal bando
+        cpv_id = None
+        cpv_list = bando_json.get("CPV", [])
+        if cpv_list:
+            if isinstance(cpv_list, str):
+                try:
+                    if cpv_list.strip().upper() != "N/A":
+                        cpv_list = json.loads(cpv_list)
+                    else:
+                        cpv_list = []
+                except json.JSONDecodeError:
+                    cpv_list = []
+            
+            # Prendi il primo CPV dalla lista (principale)
+            if cpv_list and isinstance(cpv_list, list) and len(cpv_list) > 0:
+                cpv_code = cpv_list[0].get("COD_CPV")
+                if cpv_code and cpv_code in cpv_map:
+                    cpv_id = cpv_map.get(cpv_code)
+                    print(f"  ↳ CPV trovato: {cpv_code} -> ID: {cpv_id}")
+
         if not natura_principale and bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO"):
             natura_principale = bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO")
            # Aggiungi logging per diagnosticare il problema
@@ -594,6 +672,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             "valuta": "EUR",
             "termine_ricezione": bando_json.get("DATA_SCADENZA_OFFERTA"),
             "luogo_istat": bando_json.get("LUOGO_ISTAT"),
+            "cpv_id": cpv_id,  
         }
         try:
             res_lot = (
@@ -700,8 +779,9 @@ def main():
     # Upload
     enti_map = process_enti_appaltanti(merged)
     cat_map = process_categorie_opera(merged)
+    cpv_map = process_categorie_cpv(merged)
     natura_map, criterio_map, stato_map = get_lookup_maps()
-    process_gare_e_lotti(merged, enti_map, cat_map, natura_map, criterio_map, stato_map)
+    process_gare_e_lotti(merged, enti_map, cat_map, cpv_map, natura_map, criterio_map, stato_map)
 
     print(f"✅  Pipeline completata in {time.time() - start:.1f}s")
 

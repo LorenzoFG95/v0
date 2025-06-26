@@ -9,6 +9,11 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import type { Tender } from "@/lib/types"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { toggleFavorite, isFavorite } from "@/lib/favorites"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card"
 
 interface TenderCardProps {
   tender: Tender
@@ -62,6 +67,37 @@ export function TenderCard({ tender }: TenderCardProps) {
           </div>
           <span className="ml-2 font-medium">{formatCurrency(tender.valore)}</span>
         </div>
+        
+        {tender.categorieOpera && tender.categorieOpera.length > 0 && (
+          <div className="mt-3">
+            <div className="flex flex-wrap gap-1">
+              {tender.categorieOpera
+                .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
+                .map((categoria, index) => (
+
+                <HoverCard key={index}>
+                  <HoverCardTrigger asChild>
+                    <Badge 
+                      variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                      className="cursor-help"
+                    >
+                    {categoria.id_categoria}
+                    </Badge>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold">
+                        {categoria.descrizione_tipo_categoria || 
+                          (categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile")}
+                      </h4>
+                      <p className="text-sm">{categoria.descrizione}</p>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between pt-2">
         <div className="flex items-center gap-2">

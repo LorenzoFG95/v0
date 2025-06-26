@@ -251,10 +251,78 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
       }
     }
 
-    // Mappiamo i dati
+    // Otteniamo i lotti principali per ogni gara
+    const gareIds = gareData.map(gara => gara.id)
+    const { data: lottiData, error: lottiError } = await supabase
+      .from("lotto")
+      .select("*")
+      .in("gara_id", gareIds)
+
+    // Creiamo una mappa dei lotti per gara_id
+    let lottiMap: Record<number, any> = {}
+    let lottiIds: number[] = []
+    
+    if (!lottiError && lottiData && lottiData.length > 0) {
+      lottiData.forEach(lotto => {
+        // Per ogni gara, prendiamo solo il primo lotto (principale)
+        if (!lottiMap[lotto.gara_id]) {
+          lottiMap[lotto.gara_id] = lotto
+          lottiIds.push(lotto.id)
+        }
+      })
+    }
+
+    // Otteniamo le categorie opera per tutti i lotti
+    let categorieOperaMap: Record<number, any[]> = {}
+    
+    if (lottiIds.length > 0) {
+      const { data: lottiCategorieData, error: lottiCategorieError } = await supabase
+        .from("lotto_categoria_opera")
+        .select("lotto_id, categoria_opera_id, ruolo")
+        .in("lotto_id", lottiIds)
+
+      if (!lottiCategorieError && lottiCategorieData && lottiCategorieData.length > 0) {
+        // Raggruppiamo le categorie per lotto_id
+        const categorieIds = lottiCategorieData.map(item => item.categoria_opera_id)
+        
+        const { data: categorieDetails, error: categorieDetailsError } = await supabase
+          .from("categoria_opera")
+          .select("*")
+          .in("id", categorieIds)
+
+        if (!categorieDetailsError && categorieDetails) {
+          // Creiamo una mappa delle categorie per lotto_id
+          lottiCategorieData.forEach(link => {
+            if (!categorieOperaMap[link.lotto_id]) {
+              categorieOperaMap[link.lotto_id] = []
+            }
+            
+            const categoriaDetail = categorieDetails.find(cat => cat.id === link.categoria_opera_id)
+            if (categoriaDetail) {
+              categorieOperaMap[link.lotto_id].push({
+                ...categoriaDetail,
+                cod_tipo_categoria: link.ruolo || "S"
+              })
+            }
+          })
+        }
+      }
+    }
+
+    // Mappiamo i dati includendo le categorie opera
     const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined
-      return mapDatabaseToTender(gara, enteData)
+      const lottoData = lottiMap[gara.id]
+      const cpvData = lottoData?.cpv_id ? undefined : undefined // Qui si potrebbe recuperare anche il CPV
+      
+      const tender = mapDatabaseToTender(gara, enteData, lottoData, cpvData)
+      
+      // Aggiungiamo le categorie opera se disponibili
+      if (lottoData && categorieOperaMap[lottoData.id]) {
+        tender.categorieOpera = categorieOperaMap[lottoData.id]
+      }
+      
+      return tender
     })
     
     return {
@@ -352,7 +420,7 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
     let categorieOperaData = []
     const { data: categorieOpera, error: categorieOperaError } = await supabase
       .from("lotto_categoria_opera")
-      .select("categoria_opera_id")
+      .select("categoria_opera_id, ruolo")
       .eq("lotto_id", lottoData.id)
 
     if (!categorieOperaError && categorieOpera && categorieOpera.length > 0) {
@@ -364,7 +432,15 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
         .in("id", categorieIds)
 
       if (!categorieDetailsError && categorieDetails) {
-        categorieOperaData = categorieDetails
+        // Associamo il ruolo (P/S) a ciascuna categoria
+        categorieOperaData = categorieDetails.map(categoria => {
+          // Troviamo il ruolo corrispondente
+          const linkRecord = categorieOpera.find(link => link.categoria_opera_id === categoria.id)
+          return {
+            ...categoria,
+            cod_tipo_categoria: linkRecord?.ruolo || "S" // Usiamo il ruolo dalla tabella lotto_categoria_opera
+          }
+        })
       } else {
         console.error("Errore nel recupero dei dettagli delle categorie opera:", categorieDetailsError)
       }
@@ -411,7 +487,7 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
 
     // Otteniamo gli enti appaltanti per le gare recuperate
     const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined)
-
+    
     let entiMap: Record<number, any> = {}
 
     if (entiIds.length > 0) {

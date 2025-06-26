@@ -12,6 +12,17 @@ import {
   Clock,
   Hash,
 } from "lucide-react";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TenderDetailsProps {
   tender: Tender;
@@ -177,16 +188,24 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                             }
                             className="mr-2"
                           >
-                            {categoria.cod_tipo_categoria === "P"
-                              ? "Prevalente"
-                              : "Scorporabile"}
+                            {categoria.descrizione_tipo_categoria || 
+                              (categoria.cod_tipo_categoria === "P"
+                                ? "Prevalente"
+                                : "Scorporabile")}
                           </Badge>
-                          <div className="font-medium">
-                            {categoria.id_categoria}
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {categoria.descrizione}
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <div className="font-medium cursor-help">
+                                {categoria.id_categoria}
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-semibold">Dettagli Categoria</h4>
+                                <p className="text-sm">{categoria.descrizione}</p>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
                         </div>
                       </div>
                     ))}
