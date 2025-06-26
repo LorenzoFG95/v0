@@ -253,6 +253,44 @@ def merge_data(bando: Dict, cig_data: Dict) -> Dict:
 # ---------------------------------------------------------------------------
 # SEZIONE 4 – UPLOAD IN SUPABASE (funzioni complete)
 # ---------------------------------------------------------------------------
+# Aggiungi questa funzione prima della funzione process_categorie_opera
+
+def get_lookup_maps() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
+    """
+    Recupera le mappe per natura_principale, criterio_aggiudicazione e stato_procedura.
+    Restituisce tre dizionari che mappano i codici ai rispettivi ID.
+    """
+    print("Recupero mappe di lookup...")
+    
+    # Mappa per natura_principale (codice -> id)
+    natura_map: Dict[str, int] = {}
+    try:
+        res = supabase.table("natura_principale").select("id,codice").execute()
+        for item in res.data:
+            natura_map[item["codice"].lower()] = item["id"]
+    except Exception as exc:
+        print(f"  ↳ errore recupero natura_principale: {exc}")
+    
+    # Mappa per criterio_aggiudicazione (codice -> id)
+    criterio_map: Dict[str, int] = {}
+    try:
+        res = supabase.table("criterio_aggiudicazione").select("id,codice").execute()
+        for item in res.data:
+            criterio_map[item["codice"].lower()] = item["id"]
+    except Exception as exc:
+        print(f"  ↳ errore recupero criterio_aggiudicazione: {exc}")
+    
+    # Mappa per stato_procedura (codice -> id)
+    stato_map: Dict[str, int] = {}
+    try:
+        res = supabase.table("stato_procedura").select("id,codice").execute()
+        for item in res.data:
+            stato_map[item["codice"].lower()] = item["id"]
+    except Exception as exc:
+        print(f"  ↳ errore recupero stato_procedura: {exc}")
+    
+    print(f"✔  Recuperate {len(natura_map)} nature, {len(criterio_map)} criteri e {len(stato_map)} stati")
+    return natura_map, criterio_map, stato_map
 
 def process_categorie_opera(bandi: List[Dict]) -> Dict[str, int]:
     """
@@ -301,20 +339,14 @@ def process_categorie_opera(bandi: List[Dict]) -> Dict[str, int]:
     return cat_map
 
 
-def process_gare_e_lotti(
-    bandi: List[Dict],
-    enti_map: Dict[str, int],
-    cat_map: Dict[str, int],
-) -> None:
-    """
-    Upsert di:
-      • gara                (tabella `gara`)
-      • avviso_gara         (tabella `avviso_gara`)
-      • lotto               (tabella `lotto`)
-      • lotto_categoria_opera (tabella ponte)
-    Richiede le mappe `enti_map` e `cat_map` generate in precedenza.
-    """
+def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: Dict[str, int],
+                      natura_map: Dict[str, int], criterio_map: Dict[str, int], stato_map: Dict[str, int]):
+    """Elabora i dati di gare, lotti e avvisi."""
     print("Elaborazione gare, lotti e avvisi…")
+    
+    # Debug: stampa i contenuti di natura_map
+    print(f"  ↳ natura_map contiene: {natura_map}")
+    
     gare = lotti = avvisi = links = 0
 
     for merged in bandi:
@@ -322,6 +354,8 @@ def process_gare_e_lotti(
         cig_details  = merged.get("cig_details") or {}
         bando_json   = cig_details.get("bando") or {}
         sa           = cig_details.get("stazione_appaltante") or {}
+        template     = info_bando.get("template", [{}])[0]
+        sections     = template.get("template", {}).get("sections", [])
 
         # ------------------------- GARA -------------------------
         cig = bando_json.get("CIG") or bando_json.get("cig")
@@ -332,6 +366,170 @@ def process_gare_e_lotti(
                                or sa.get("CF_AMMINISTRAZIONE_APPALTANTE"))
         if not ente_id:
             continue                        # ente non caricato → saltiamo
+
+                # Estrai natura_principale, criterio_aggiudicazione e stato_procedura
+        natura_principale = None
+        criterio_aggiudicazione = None
+        stato_procedura = None
+        
+        # Cerca nei dati del bando
+        for section in sections:
+            if section.get("name") == "SEZ. C - Oggetto":
+                items = section.get("items", [])
+                if items:
+                    natura_principale = items[0].get("natura_principale")
+                    criterio_aggiudicazione = items[0].get("criteri_aggiudicazione")
+        
+        # Se non trovati, cerca nei dettagli CIG
+        if not natura_principale and bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO"):
+            natura_principale = bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO")
+           # Aggiungi logging per diagnosticare il problema
+        if not natura_principale:
+            print(f"  ⚠️ Natura principale non trovata per CIG {cig}")
+            # Stampa le sezioni per vedere se c'è la sezione "SEZ. C - Oggetto"
+            print(f"  ↳ Sezioni disponibili: {[s.get('name') for s in sections]}")
+            # Stampa i campi disponibili in bando_json
+            print(f"  ↳ Campi in bando_json: {list(bando_json.keys())}")
+        else:
+            # Stampa il valore trovato e se è stato mappato correttamente
+            natura_norm = natura_principale.lower()
+            mapped = False
+            if "lavori" in natura_norm:
+                mapped = True
+            elif "forniture" in natura_norm or "fornitura" in natura_norm:
+                mapped = True
+            elif "servizi" in natura_norm or "servizio" in natura_norm:
+                mapped = True
+            if not mapped:
+                print(f"  ⚠️ Natura principale trovata ma non mappata: '{natura_principale}'")
+            
+        if not criterio_aggiudicazione and bando_json.get("CRITERIO_AGGIUDICAZIONE"):
+            criterio_aggiudicazione = bando_json.get("CRITERIO_AGGIUDICAZIONE")
+            
+        # Per stato_procedura, usa lo stato dal bando
+        if bando_json.get("STATO"):
+            stato_procedura = bando_json.get("STATO")
+        
+        # Mappa i valori testuali agli ID delle tabelle di lookup
+        natura_principale_id = None
+        if natura_principale:
+            # Dizionario di mappatura per natura_principale
+            natura_mapping = {
+                "lavori": "works",
+                "work": "works",
+                "works": "works",
+                "forniture": "goods",
+                "fornitura": "goods",
+                "good": "goods",
+                "goods": "goods",
+                "servizi": "services",
+                "servizio": "services",
+                "service": "services",
+                "services": "services"
+            }
+            
+            # Normalizza e cerca nella mappa
+            natura_norm = natura_principale.lower()
+            
+            # Aggiungi debug per vedere cosa contiene natura_principale
+            print(f"  ↳ Natura principale trovata: '{natura_principale}', normalizzata: '{natura_norm}'")
+            print(f"  ↳ Natura map contiene: {natura_map}")
+            
+            # Prima verifica se il valore normalizzato è esattamente uguale a una delle chiavi
+            if natura_norm in natura_mapping:
+                natura_principale_id = natura_map.get(natura_mapping[natura_norm])
+                print(f"  ↳ Mappato esattamente a {natura_mapping[natura_norm]} -> {natura_principale_id}")
+            else:
+                # Altrimenti cerca se una delle chiavi è contenuta nel valore normalizzato
+                for key, value in natura_mapping.items():
+                    if key in natura_norm:
+                        natura_principale_id = natura_map.get(value)
+                        print(f"  ↳ Mappato parzialmente a {value} -> {natura_principale_id}")
+                        break
+                    
+                    if not natura_principale_id:
+                        print(f"  ⚠️ Natura principale non mappata: '{natura_principale}'")
+            
+        criterio_aggiudicazione_id = None
+        if criterio_aggiudicazione:
+            # Dizionario di mappatura per criterio_aggiudicazione
+            criterio_mapping = {
+                "prezzo": "price",
+                "price": "price",
+                "qualità": "quality",
+                "qualita": "quality",
+                "quality": "quality",
+                "costo": "cost",
+                "cost": "cost",
+                "economicamente vantaggiosa": "quality",  # Spesso si riferisce a qualità-prezzo
+                "offerta economicamente vantaggiosa": "quality"
+            }
+            
+            # Normalizza e cerca nella mappa
+            criterio_norm = criterio_aggiudicazione.lower()
+            
+            # Aggiungi debug per vedere cosa contiene criterio_aggiudicazione
+            print(f"  ↳ Criterio aggiudicazione trovato: '{criterio_aggiudicazione}', normalizzato: '{criterio_norm}'")
+            print(f"  ↳ Criterio map contiene: {criterio_map}")
+            
+            # Prima verifica se il valore normalizzato è esattamente uguale a una delle chiavi
+            if criterio_norm in criterio_mapping:
+                criterio_aggiudicazione_id = criterio_map.get(criterio_mapping[criterio_norm])
+                print(f"  ↳ Mappato esattamente a {criterio_mapping[criterio_norm]} -> {criterio_aggiudicazione_id}")
+            else:
+                # Altrimenti cerca se una delle chiavi è contenuta nel valore normalizzato
+                for key, value in criterio_mapping.items():
+                    if key in criterio_norm:
+                        criterio_aggiudicazione_id = criterio_map.get(value)
+                        print(f"  ↳ Mappato parzialmente a {value} -> {criterio_aggiudicazione_id}")
+                        break
+                
+                if not criterio_aggiudicazione_id:
+                    print(f"  ⚠️ Criterio aggiudicazione non mappato: '{criterio_aggiudicazione}'")
+        
+        stato_procedura_id = None
+        if stato_procedura:
+            # Dizionario di mappatura per stato_procedura
+            stato_mapping = {
+                "programmazione": "planning",
+                "planning": "planning",
+                "attivo": "active",
+                "in corso": "active",
+                "active": "active",
+                "concluso": "complete",
+                "conclusa": "complete",
+                "complete": "complete",
+                "annullato": "cancelled",
+                "annullata": "cancelled",
+                "cancelled": "cancelled",
+                "senza esito": "unsuccessful",
+                "unsuccessful": "unsuccessful"
+            }
+            
+            # Normalizza e cerca nella mappa
+            stato_norm = stato_procedura.lower()
+            
+            # Aggiungi debug per vedere cosa contiene stato_procedura
+            print(f"  ↳ Stato procedura trovato: '{stato_procedura}', normalizzato: '{stato_norm}'")
+            print(f"  ↳ Stato map contiene: {stato_map}")
+            
+            # Prima verifica se il valore normalizzato è esattamente uguale a una delle chiavi
+            if stato_norm in stato_mapping:
+                stato_procedura_id = stato_map.get(stato_mapping[stato_norm])
+                print(f"  ↳ Mappato esattamente a {stato_mapping[stato_norm]} -> {stato_procedura_id}")
+            else:
+                # Altrimenti cerca se una delle chiavi è contenuta nel valore normalizzato
+                for key, value in stato_mapping.items():
+                    if key in stato_norm:
+                        stato_procedura_id = stato_map.get(value)
+                        print(f"  ↳ Mappato parzialmente a {value} -> {stato_procedura_id}")
+                        break
+                
+                if not stato_procedura_id:
+                    print(f"  ⚠️ Stato procedura non mappato: '{stato_procedura}'")
+                    # Usa active come default se non è stato possibile mappare
+                    stato_procedura_id = stato_map.get("active")  # Default
+                    print(f"  ↳ Usando valore default 'active' -> {stato_procedura_id}")
 
         gara_payload = {
             "cig": cig,
@@ -344,6 +542,9 @@ def process_gare_e_lotti(
             "importo_totale": bando_json.get("IMPORTO_COMPLESSIVO_GARA"),
             "importo_sicurezza": bando_json.get("IMPORTO_SICUREZZA"),
             "valuta": "EUR",
+            "natura_principale_id": natura_principale_id,
+            "criterio_aggiudicazione_id": criterio_aggiudicazione_id,
+            "stato_procedura_id": stato_procedura_id,
         }
         try:
             res = (
@@ -499,7 +700,8 @@ def main():
     # Upload
     enti_map = process_enti_appaltanti(merged)
     cat_map = process_categorie_opera(merged)
-    process_gare_e_lotti(merged, enti_map, cat_map)
+    natura_map, criterio_map, stato_map = get_lookup_maps()
+    process_gare_e_lotti(merged, enti_map, cat_map, natura_map, criterio_map, stato_map)
 
     print(f"✅  Pipeline completata in {time.time() - start:.1f}s")
 
@@ -516,8 +718,6 @@ def download_cig_wrapper(cig: str) -> Optional[Path]:
         return None
     return path
 
-# Remove this line:
-# Aggiungi questa funzione prima della funzione process_categorie_opera
 
 def process_enti_appaltanti(bandi: List[Dict]) -> Dict[str, int]:
     """

@@ -52,6 +52,7 @@ const PaginationLink = ({
         variant: isActive ? "outline" : "ghost",
         size,
       }),
+      "cursor-pointer", // Aggiunto cursor-pointer per mostrare il cursore a mano all'hover
       className
     )}
     {...props}

@@ -437,6 +437,13 @@ export function ClientDashboard({
               )
             })}
             
+            {/* Indicatore del numero totale di pagine */}
+            <PaginationItem>
+              <span className="flex items-center justify-center h-9 px-2 text-sm text-gray-500">
+                di {totalPages}
+              </span>
+            </PaginationItem>
+            
             {currentPage < totalPages && (
               <PaginationItem>
                 <PaginationNext onClick={() => changePage(currentPage + 1)} />
