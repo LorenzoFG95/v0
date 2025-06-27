@@ -125,7 +125,8 @@ function mapDatabaseToTender(
   dbData: any,
   enteData?: any,
   lottoData?: any,
-  cpvData?: any
+  cpvData?: any,
+  naturaPrincipaleData?: any
 ): Tender {
   return {
     id: dbData.id.toString(),
@@ -140,6 +141,7 @@ function mapDatabaseToTender(
     inizioGara: dbData.data_pubblicazione || new Date().toISOString(),
     cpv: cpvData ? cpvData.codice : "CPV non specificato",
     categoria: cpvData ? cpvData.descrizione : "Non specificata",
+    naturaPrincipale: naturaPrincipaleData ? naturaPrincipaleData.descrizione : undefined,
     procedura: "Procedura Aperta",
     stazioneAppaltante: {
       id: enteData?.id?.toString() || "",
@@ -336,14 +338,42 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
       }
       return acc;
     }, {});
+
+    // Recuperiamo i dati natura principale per ogni lotto
+    const naturaPrincipalePromises = gareData.map(async (gara) => {
+      if (gara?.natura_principale_id) {
+        const { data: naturaPrincipale, error: naturaPrincipaleError } = await supabase
+          .from("natura_principale")
+          .select("*")
+          .eq("id", gara.natura_principale_id)
+          .single();
+        
+        if (naturaPrincipaleError) {
+          console.error("Errore nel recupero della natura principale:", naturaPrincipaleError);
+          return { garaId: gara.id, naturaPrincipaleData: undefined };
+        } else {
+          return { garaId: gara.id, naturaPrincipaleData: naturaPrincipale };
+        }
+      }
+      return { garaId: gara.id, naturaPrincipaleData: undefined };
+    });
     
+    const naturaPrincipaleResults = await Promise.all(naturaPrincipalePromises);
+    const naturaPrincipaleMap = naturaPrincipaleResults.reduce((acc, result) => {
+      if (result) {
+        acc[result.garaId] = result.naturaPrincipaleData;
+      }
+      return acc;
+    }, {});
+
     // Mappiamo i dati includendo le categorie opera
     const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined;
       const lottoData = lottiMap[gara.id];
       const cpvData = cpvMap[gara.id as keyof typeof cpvMap];
+      const naturaPrincipaleData = naturaPrincipaleMap[gara.id as keyof typeof naturaPrincipaleMap];
       
-      const tender = mapDatabaseToTender(gara, enteData, lottoData, cpvData); 
+      const tender = mapDatabaseToTender(gara, enteData, lottoData, cpvData, naturaPrincipaleData); 
       
       // Aggiungiamo le categorie opera se disponibili
       if (lottoData && categorieOperaMap[lottoData.id]) {
@@ -660,6 +690,70 @@ export async function getCategorieNatura(): Promise<{ id: string; descrizione: s
       { id: "1", descrizione: "Lavori" },
       { id: "2", descrizione: "Forniture" },
       { id: "3", descrizione: "Servizi" },
+    ]
+  }
+}
+
+
+export async function getCategorieOpera(): Promise<{ id: string; descrizione: string; id_categoria: string }[]> {
+  // Se non abbiamo le variabili di ambiente, usa i dati mock
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return [
+      { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
+      { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
+      { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
+      { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
+      { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
+    ]
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Verifica se la tabella esiste
+    const exists = await tableExists(supabase, "categoria_opera")
+    if (!exists) {
+      console.warn("La tabella 'categoria_opera' non esiste. Utilizzando dati di esempio.")
+      return [
+        { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
+        { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
+        { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
+        { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
+        { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
+      ]
+    }
+
+    const { data, error } = await supabase
+      .from("categoria_opera")
+      .select("id, descrizione, id_categoria")
+      .order("descrizione")
+
+    if (error) {
+      console.error("Errore nel recupero delle categorie opera:", error)
+      return [
+        { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
+        { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
+        { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
+        { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
+        { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
+      ]
+    }
+
+    return (
+      data?.map((categoria) => ({
+        id: categoria.id.toString(),
+        descrizione: categoria.descrizione,
+        id_categoria: categoria.id_categoria,
+      })) || []
+    )
+  } catch (error) {
+    console.error("Errore generale nel recupero delle categorie opera:", error)
+    return [
+      { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
+      { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
+      { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
+      { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
+      { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
     ]
   }
 }

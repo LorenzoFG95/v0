@@ -26,6 +26,7 @@ export interface Tender {
   inizioGara: string
   cpv: string
   categoria: string
+  naturaPrincipale?: string // Aggiunto il campo per la natura principale
   procedura: string
   stazioneAppaltante: StazioneAppaltante
   partecipanti?: number

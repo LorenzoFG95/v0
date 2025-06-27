@@ -19,23 +19,53 @@ interface TenderCardProps {
   tender: Tender
 }
 
+// Funzione per determinare la variante del badge in base alla natura principale
+function getNaturaBadgeVariant(natura?: string): "default" | "secondary" | "destructive" | "outline" | "service" {
+  if (!natura) return "outline"
+  
+  switch (natura.toLowerCase()) {
+    case "lavori":
+      return "default" // blu
+    case "forniture":
+      return "secondary" // grigio
+    case "servizi":
+      return "service" // ambra (meno acceso del rosso)
+    default:
+      return "outline"
+  }
+}
+
 export function TenderCard({ tender }: TenderCardProps) {
   const [favorite, setFavorite] = useState(isFavorite(tender.id))
-
+  
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     toggleFavorite(tender.id)
     setFavorite(!favorite)
   }
+  
+  // Determina la natura principale dal campo categoria se non è disponibile direttamente
+  const naturaPrincipale = tender.naturaPrincipale || (
+    tender.categoria?.toLowerCase().includes("lavori") ? "Lavori" :
+    tender.categoria?.toLowerCase().includes("fornitur") ? "Forniture" :
+    tender.categoria?.toLowerCase().includes("servizi") ? "Servizi" : undefined
+  )
 
   return (
     <Card className="h-full hover:shadow-md transition-shadow">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <Badge variant="outline" className="mb-2">
-            {tender.planificazione}
-          </Badge>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="mb-2">
+              {tender.planificazione}
+            </Badge>
+            {naturaPrincipale && (
+              <Badge variant={getNaturaBadgeVariant(naturaPrincipale)} className="mb-2">
+                {naturaPrincipale}
+              </Badge>
+            )}
+          </div>
           <Button variant="ghost" size="icon" onClick={handleFavoriteClick} className="h-8 w-8">
             <Bookmark size={18} className={favorite ? "fill-red-500 text-red-500" : ""} />
           </Button>

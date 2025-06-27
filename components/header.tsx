@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Home, FileText, Heart } from "lucide-react"
+import { Home, FileText, Bookmark } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 
@@ -26,16 +26,9 @@ export function Header() {
             </Link>
           </Button>
 
-          <Button variant={pathname === "/gare" ? "secondary" : "ghost"} size="sm" asChild>
-            <Link href="/gare" className="flex items-center gap-1">
-              <FileText size={16} />
-              <span>Gare d&apos;Appalto</span>
-            </Link>
-          </Button>
-
           <Button variant={pathname === "/preferiti" ? "secondary" : "ghost"} size="sm" asChild>
             <Link href="/preferiti" className="flex items-center gap-1">
-              <Heart size={16} />
+              <Bookmark size={16} />
               <span>Preferiti</span>
             </Link>
           </Button>

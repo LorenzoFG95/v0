@@ -1,5 +1,5 @@
 import { Header } from "@/components/header"
-import { getTenders, getEntiAppaltanti, getCategorieNatura } from "@/lib/data"
+import { getTenders, getCategorieNatura, getCategorieOpera } from "@/lib/data"
 import { DatabaseSetupGuide } from "@/components/database-setup-guide"
 import { ClientDashboard } from "@/components/client-dashboard"
 import { ConnectionStatus } from "@/components/connection-status";
@@ -34,10 +34,10 @@ export default async function Home({ searchParams }: { searchParams: { page?: st
   }
 
   // Get all data server-side
-  const [{ tenders, total }, entiAppaltanti, categorie] = await Promise.all([
+  const [{ tenders, total }, categorie, categorieOpera] = await Promise.all([
     getTenders(currentPage, 10),
-    getEntiAppaltanti(),
     getCategorieNatura(),
+    getCategorieOpera(),
   ])
 
   return (
@@ -51,7 +51,7 @@ export default async function Home({ searchParams }: { searchParams: { page?: st
 
         <ClientDashboard 
           initialTenders={tenders} 
-          entiAppaltanti={entiAppaltanti} 
+          categorieOpera={categorieOpera} 
           categorie={categorie} 
           currentPage={currentPage}
           totalItems={total}
