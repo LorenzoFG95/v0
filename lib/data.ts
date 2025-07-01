@@ -150,8 +150,24 @@ export async function getTenders(filters: {
 
     // Applichiamo i filtri alla query
     if (searchQuery) {
-      const searchFilter = `titolo.ilike.%${searchQuery}%,descrizione.ilike.%${searchQuery}%`;
-      dataQuery = dataQuery.or(searchFilter);
+      // Applichiamo i filtri alla query
+      if (searchQuery) {
+        // Prima cerchiamo gli enti appaltanti che corrispondono alla query
+        const { data: entiData, error: entiError } = await supabase
+          .from("ente_appaltante")
+          .select("id")
+          .ilike("denominazione", `%${searchQuery}%`);
+        
+        // Otteniamo gli ID degli enti che corrispondono alla ricerca
+        const entiIds = !entiError && entiData ? entiData.map(ente => ente.id) : [];
+        
+        // Costruiamo la query di ricerca
+        dataQuery = dataQuery.or(
+          `descrizione.ilike.%${searchQuery}%,` +
+          `cig.ilike.%${searchQuery}%` +
+          (entiIds.length > 0 ? `,ente_appaltante_id.in.(${entiIds.join(',')})` : '')
+        );
+      }
     }
 
     if (startDate) {
