@@ -99,15 +99,26 @@ export async function getTenders(filters: {
     let gareIdsWithCategoriaOpera: number[] | null = null;
     
     if (categoriaOpera) {
+            // Prima otteniamo l'ID numerico della categoria opera dal suo codice
+      const { data: categoriaOperaData, error: categoriaOperaLookupError } = await supabase
+        .from("categoria_opera")
+        .select("id")
+        .eq("id_categoria", categoriaOpera)
+        .single();
+        
+      if (categoriaOperaLookupError || !categoriaOperaData) {
+        console.error("Errore nel recupero dell'ID della categoria opera:", categoriaOperaLookupError);
+        return { tenders: [], total: 0 };
+      }
       // Costruiamo una query per ottenere i lotti con la categoria opera specificata
       let categoriaOperaQuery = supabase
-        .from("categoria_opera_lotto")
-        .select("lotto_id, categoria_opera(*)")
-        .eq("categoria_opera_id", categoriaOpera);
+        .from("lotto_categoria_opera")
+        .select("lotto_id, categoria_opera_id, ruolo")
+        .eq("categoria_opera_id", categoriaOperaData.id);
       
       // Se soloPrevalente è true, filtriamo solo per categorie prevalenti
       if (soloPrevalente) {
-        categoriaOperaQuery = categoriaOperaQuery.eq("cod_tipo_categoria", "P");
+        categoriaOperaQuery = categoriaOperaQuery.eq("ruolo", "P");  // Cambiato da cod_tipo_categoria a ruolo
       }
       
       const { data: lottiWithCategoria, error: categoriaError } = await categoriaOperaQuery;
@@ -233,21 +244,36 @@ export async function getTenders(filters: {
       const lottiIds = lottiData.map(lotto => lotto.id).filter(id => id !== null && id !== undefined);
       
       if (lottiIds.length > 0) {
-        const { data: categorieOperaData, error: categorieOperaError } = await supabase
-          .from("categoria_opera_lotto")
-          .select("*, categoria_opera(*)")
+        const { data: lottiCategorieData, error: lottiCategorieError } = await supabase
+          .from("lotto_categoria_opera")
+          .select("lotto_id, categoria_opera_id, ruolo")
           .in("lotto_id", lottiIds);
 
-        if (!categorieOperaError && categorieOperaData) {
-          categorieOperaMap = categorieOperaData.reduce((acc, item) => {
-            if (item.lotto_id) {
-              if (!acc[item.lotto_id]) {
-                acc[item.lotto_id] = [];
+        if (!lottiCategorieError && lottiCategorieData && lottiCategorieData.length > 0) {
+          // Raggruppiamo le categorie per lotto_id
+          const categorieIds = lottiCategorieData.map(item => item.categoria_opera_id);
+          
+          const { data: categorieDetails, error: categorieDetailsError } = await supabase
+            .from("categoria_opera")
+            .select("*")
+            .in("id", categorieIds);
+
+          if (!categorieDetailsError && categorieDetails) {
+            // Creiamo una mappa delle categorie per lotto_id
+            lottiCategorieData.forEach(link => {
+              if (!categorieOperaMap[link.lotto_id]) {
+                categorieOperaMap[link.lotto_id] = [];
               }
-              acc[item.lotto_id].push(item.categoria_opera);
-            }
-            return acc;
-          }, {} as Record<number, any[]>);
+              
+              const categoriaDetail = categorieDetails.find(cat => cat.id === link.categoria_opera_id);
+              if (categoriaDetail) {
+                categorieOperaMap[link.lotto_id].push({
+                  ...categoriaDetail,
+                  cod_tipo_categoria: link.ruolo || "S"
+                });
+              }
+            });
+          }
         }
       }
     }
@@ -292,7 +318,7 @@ export async function getTenders(filters: {
       }
       return { garaId: gara.id, cpvData: undefined };
     });
-    
+
     const cpvResults = await Promise.all(cpvPromises);
     const cpvMap = cpvResults.reduce((acc, result) => {
       if (result) {
@@ -425,10 +451,9 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       .from("categoria_opera_lotto")
       .select("*, categoria_opera(*)")
       .eq("lotto_id", lottoData.id)
-
-    if (!categorieOperaError && categorieOpera) {
-      categorieOperaData = categorieOpera.map((item) => item.categoria_opera).filter(Boolean)
-    }
+      if (!categorieOperaError && categorieOpera) {
+        categorieOperaData = categorieOpera.map((item) => item.categoria_opera).filter(Boolean)
+      }
 
     // Otteniamo la categoria CPV
     let cpvData = undefined
@@ -490,7 +515,7 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
       const { data: entiData, error: entiError } = await supabase.from("ente_appaltante").select("*").in("id", entiIds)
 
       if (entiError) {
-        console.error("Errore nel recupero degli enti appaltanti:", entiError)
+        console.error("Errore nel recupero degli enti appaltanti:", entiError);
       } else if (entiData) {
         entiMap = entiData.reduce(
           (acc, ente) => {
