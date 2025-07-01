@@ -168,9 +168,53 @@ export function ClientDashboard({
   }, [searchQuery, filters])
 
   // Handle search
+  // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    // Search is handled automatically by the useMemo above
+    
+    // Costruiamo i parametri di query
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', '1'); // Torniamo alla prima pagina
+    
+    if (searchQuery.trim()) {
+      queryParams.append('searchQuery', searchQuery.trim());
+    }
+    
+    // Aggiungiamo anche gli altri filtri attivi
+    if (filters.categoriaOpera !== 'all') {
+      queryParams.append('categoriaOpera', filters.categoriaOpera);
+    }
+    
+    if (filters.soloPrevalente) {
+      queryParams.append('soloPrevalente', 'true');
+    }
+    
+    if (filters.categoria !== 'all') {
+      queryParams.append('categoria', filters.categoria);
+    }
+    
+    if (filters.stato !== 'all') {
+      queryParams.append('stato', filters.stato);
+    }
+    
+    if (filters.startDate) {
+      queryParams.append('startDate', filters.startDate);
+    }
+    
+    if (filters.endDate) {
+      queryParams.append('endDate', filters.endDate);
+    }
+    
+    if (filters.minValue) {
+      queryParams.append('minValue', filters.minValue);
+    }
+    
+    if (filters.maxValue) {
+      queryParams.append('maxValue', filters.maxValue);
+    }
+    
+    // Navighiamo alla stessa pagina ma con i nuovi parametri di query
+    router.push(`${pathname}?${queryParams.toString()}`);
   }
 
   // Handle temporary filter changes (while editing)
@@ -183,9 +227,55 @@ export function ClientDashboard({
 
   // Apply filters (when user clicks "Applica Filtri")
   const applyFilters = () => {
+    // Aggiorniamo lo stato locale
     setFilters(tempFilters)
+    
+    // Costruiamo i parametri di query per i filtri
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', '1'); // Torniamo alla prima pagina
+    
+    // Aggiungiamo solo i filtri che hanno un valore
+    if (tempFilters.categoriaOpera !== 'all') {
+      queryParams.append('categoriaOpera', tempFilters.categoriaOpera);
+    }
+    
+    if (tempFilters.soloPrevalente) {
+      queryParams.append('soloPrevalente', 'true');
+    }
+    
+    if (tempFilters.categoria !== 'all') {
+      queryParams.append('categoria', tempFilters.categoria);
+    }
+    
+    if (tempFilters.stato !== 'all') {
+      queryParams.append('stato', tempFilters.stato);
+    }
+    
+    if (tempFilters.startDate) {
+      queryParams.append('startDate', tempFilters.startDate);
+    }
+    
+    if (tempFilters.endDate) {
+      queryParams.append('endDate', tempFilters.endDate);
+    }
+    
+    if (tempFilters.minValue) {
+      queryParams.append('minValue', tempFilters.minValue);
+    }
+    
+    if (tempFilters.maxValue) {
+      queryParams.append('maxValue', tempFilters.maxValue);
+    }
+    
+    if (searchQuery.trim()) {
+      queryParams.append('searchQuery', searchQuery.trim());
+    }
+    
+    // Navighiamo alla stessa pagina ma con i nuovi parametri di query
+    router.push(`${pathname}?${queryParams.toString()}`);
   }
 
+  // Reset all filters
   // Reset all filters
   const resetFilters = () => {
     const resetState = {
@@ -201,6 +291,9 @@ export function ClientDashboard({
     setFilters(resetState)
     setTempFilters(resetState)
     setSearchQuery("")
+    
+    // Navighiamo alla pagina senza filtri
+    router.push(pathname);
   }
 
   // When opening filters, sync temp filters with current filters
@@ -215,9 +308,51 @@ export function ClientDashboard({
   const totalPages = Math.ceil(totalItems / pageSize)
   
   // Function to change page (move this before the return statement)
+  // Function to change page
   const changePage = (page: number) => {
-    router.push(`${pathname}?page=${page}`)
+  // Costruiamo i parametri di query
+  const queryParams = new URLSearchParams();
+  queryParams.append('page', page.toString());
+  
+  // Aggiungiamo i filtri attivi
+  if (searchQuery.trim()) {
+    queryParams.append('searchQuery', searchQuery.trim());
   }
+  
+  if (filters.categoriaOpera !== 'all') {
+    queryParams.append('categoriaOpera', filters.categoriaOpera);
+  }
+  
+  if (filters.soloPrevalente) {
+    queryParams.append('soloPrevalente', 'true');
+  }
+  
+  if (filters.categoria !== 'all') {
+    queryParams.append('categoria', filters.categoria);
+  }
+  
+  if (filters.stato !== 'all') {
+    queryParams.append('stato', filters.stato);
+  }
+  
+  if (filters.startDate) {
+    queryParams.append('startDate', filters.startDate);
+  }
+  
+  if (filters.endDate) {
+    queryParams.append('endDate', filters.endDate);
+  }
+  
+  if (filters.minValue) {
+    queryParams.append('minValue', filters.minValue);
+  }
+  
+  if (filters.maxValue) {
+    queryParams.append('maxValue', filters.maxValue);
+  }
+  
+  router.push(`${pathname}?${queryParams.toString()}`);
+}
 
   return (
     <div className="space-y-6">
@@ -422,14 +557,14 @@ export function ClientDashboard({
       )}
 
       {/* Results Summary */}
-      <div className="flex justify-between items-center">
+      {/*<div className="flex justify-between items-center">
         <div className="text-sm text-gray-500">
           Trovate {filteredTenders.length} gare d&apos;appalto
           {initialTenders.length !== filteredTenders.length && (
             <span className="text-blue-600"> su {initialTenders.length} totali</span>
           )}
         </div>
-      </div>
+      </div>*/}
       
       {/* Results */}
       <TenderList tenders={filteredTenders} />

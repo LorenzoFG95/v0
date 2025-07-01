@@ -1,125 +1,6 @@
 import { createClient } from "@/utils/supabase/server"
 import type { Tender } from "./types"
 
-// Dati di esempio aggiornati con CIG
-const MOCK_TENDERS: Tender[] = [
-  {
-    id: "1",
-    cig: "B7248F5C72",
-    titolo: "Procedura aperta per l'affidamento del servizio di attuazione di un piano di promozione",
-    descrizione:
-      "Procedura aperta per l'affidamento del servizio di attuazione di un piano di promozione (organizzazione di manifestazioni perla valorizzazione ecoturistica dell'ambiente, per la promozione della cultura marinara locale e dei prodotti ittici ed ittico-conservieri) dal 2025 al 2026 (durata 24 mesi).",
-    planificazione: "Pianificazione",
-    valore: 200000.0,
-    pubblicazione: "2025-06-05T06:00:01.000Z",
-    scadenza: "2025-07-08T12:00:00.000Z",
-    inizioGara: "2025-06-05T06:00:01.000Z",
-    cpv: "CPV7e1b54",
-    categoria: "Servizi",
-    procedura: "Procedura Aperta",
-    stazioneAppaltante: {
-      id: "6",
-      nome: "GRUPPO D'AZIONE COSTIERA GOLFO DI PATTI - SOCIETA' CONSORTILE A R L.",
-      contatto: "Responsabile GRUPPO D'AZIONE COSTIERA GOLFO DI PATTI",
-      email: "info@gacgolfodipatti.it",
-      indirizzo: "Sicilia, Patti",
-    },
-    partecipanti: undefined,
-  },
-  {
-    id: "2",
-    cig: "B72476A67D",
-    titolo:
-      "Procedura ristretta non impegnativa per l'affidamento pluriennale in concessione del servizio di sfalcio erba",
-    descrizione:
-      "Procedura ristretta non impegnativa per l'A.D. per l'affidamento pluriennale in concessione del servizio di sfalcio erba presso il Comando Aeroporto Sigonella e Deposito Favotto.",
-    planificazione: "Pianificazione",
-    valore: 9500.0,
-    pubblicazione: "2025-06-05T06:00:01.000Z",
-    scadenza: "2025-06-10T10:30:00.000Z",
-    inizioGara: "2025-06-05T06:00:01.000Z",
-    cpv: "CPVe6074a",
-    categoria: "Servizi",
-    procedura: "Procedura Ristretta",
-    stazioneAppaltante: {
-      id: "7",
-      nome: "COMANDO AEROPORTO DI SIGONELLA",
-      contatto: "Responsabile COMANDO AEROPORTO DI SIGONELLA",
-      email: "info@comandoaeroportodisigonella.it",
-      indirizzo: "Sicilia, Sigonella",
-    },
-    partecipanti: undefined,
-  },
-  {
-    id: "3",
-    cig: "B7245BB2D2",
-    titolo: "PSR 2014-2022. MISURA 7 - SOTTOMISURA 7.2 - OPERAZIONE 7.2.B INVESTIMENTO SU PICCOLA SCALA",
-    descrizione:
-      "PSR 2014-2022. MISURA 7 - SOTTOMISURA 7.2 - OPERAZIONE 7.2.B INVESTIMENTO SU PICCOLA SCALA PER LAMMODERNAMENTO DELLA VIABILITÀ COMUNALE SECONDARIA ESISTENTE Importo € 250.000,00 - CUP: C97H23000500002",
-    planificazione: "Pianificazione",
-    valore: 186232.51,
-    pubblicazione: "2025-06-05T06:00:01.000Z",
-    scadenza: "2025-06-18T18:00:00.000Z",
-    inizioGara: "2025-06-05T06:00:01.000Z",
-    cpv: "CPVba84a9",
-    categoria: "Lavori",
-    procedura: "Procedura Aperta",
-    stazioneAppaltante: {
-      id: "8",
-      nome: "COMUNE DI NOCIGLIA",
-      contatto: "Responsabile COMUNE DI NOCIGLIA",
-      email: "info@comunedinociglia.it",
-      indirizzo: "Puglia, Nociglia",
-    },
-    partecipanti: undefined,
-  },
-  {
-    id: "4",
-    cig: "B7243C6561",
-    titolo: "Rifacimento della rete di distribuzione dell'impianto termico del plesso scolastico",
-    descrizione:
-      "Rifacimento della rete di distribuzione dell'impianto termico del plesso scolastico di via A. Moro n. 14 e ristrutturazione spogliatoi palestra",
-    planificazione: "Pianificazione",
-    valore: 263471.43,
-    pubblicazione: "2025-06-05T06:00:00.000Z",
-    scadenza: "2025-06-27T10:00:00.000Z",
-    inizioGara: "2025-06-05T06:00:00.000Z",
-    cpv: "CPVa3361e",
-    categoria: "Lavori",
-    procedura: "Procedura Aperta",
-    stazioneAppaltante: {
-      id: "9",
-      nome: "COMUNE DI BUCCINASCO",
-      contatto: "Responsabile COMUNE DI BUCCINASCO",
-      email: "info@comunedibuccinasco.it",
-      indirizzo: "Lombardia, Buccinasco",
-    },
-    partecipanti: undefined,
-  },
-  {
-    id: "5",
-    cig: "B723BF0DF7",
-    titolo: "Affidamento in concessione del servizio di gestione della Piscina comunale per tre anni",
-    descrizione: "Affidamento in concessione del servizio di gestione della Piscina comunale per tre anni",
-    planificazione: "Pianificazione",
-    valore: 30000.0,
-    pubblicazione: "2025-06-05T06:00:01.000Z",
-    scadenza: "2025-06-12T20:00:00.000Z",
-    inizioGara: "2025-06-05T06:00:01.000Z",
-    cpv: "CPV46ca7d",
-    categoria: "Servizi",
-    procedura: "Procedura Aperta",
-    stazioneAppaltante: {
-      id: "10",
-      nome: "COMUNE DI SAVIGNANO IRPINO",
-      contatto: "Responsabile COMUNE DI SAVIGNANO IRPINO",
-      email: "info@comunedisavignanoirpino.it",
-      indirizzo: "Campania, Savignano Irpino",
-    },
-    partecipanti: undefined,
-  },
-]
-
 // Funzione per convertire i dati dal database al formato dell'applicazione
 function mapDatabaseToTender(
   dbData: any,
@@ -174,14 +55,35 @@ async function tableExists(supabase: any, tableName: string): Promise<boolean> {
   }
 }
 
-export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Tender[], total: number }> {
-  // Se non abbiamo le variabili di ambiente, usa i dati mock
+export async function getTenders(filters: {
+  searchQuery?: string;
+  categoriaOpera?: string;
+  soloPrevalente?: boolean;
+  categoria?: string;
+  stato?: string;
+  startDate?: string;
+  endDate?: string;
+  minValue?: number;
+  maxValue?: number;
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<{ tenders: Tender[], total: number }> {
+  const {
+    searchQuery,
+    categoriaOpera,
+    soloPrevalente,
+    categoria,
+    stato,
+    startDate,
+    endDate,
+    minValue,
+    maxValue,
+    page = 1,
+    pageSize = 10
+  } = filters;
+  // Verifica che le variabili di ambiente siano configurate
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    console.warn("Variabili di ambiente Supabase non configurate. Utilizzando dati di esempio.")
-    return { 
-      tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
-      total: MOCK_TENDERS.length 
-    }
+    throw new Error("Variabili di ambiente Supabase non configurate.");
   }
 
   try {
@@ -190,124 +92,168 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
     // Verifica se la tabella esiste
     const exists = await tableExists(supabase, "gara")
     if (!exists) {
-      console.warn("La tabella 'gara' non esiste. Utilizzando dati di esempio.")
-      return { 
-        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
-        total: MOCK_TENDERS.length 
-      }
+      throw new Error("La tabella 'gara' non esiste.");
     }
 
-    // Otteniamo prima il conteggio totale
-    const { count, error: countError } = await supabase
-      .from("gara")
-      .select('*', { count: 'exact', head: true })
-
-    if (countError) {
-      console.error("Errore nel conteggio delle gare:", countError)
-      return { 
-        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
-        total: MOCK_TENDERS.length 
+    // Se abbiamo un filtro per categoriaOpera, otteniamo prima gli ID delle gare che corrispondono
+    let gareIdsWithCategoriaOpera: number[] | null = null;
+    
+    if (categoriaOpera) {
+      // Costruiamo una query per ottenere i lotti con la categoria opera specificata
+      let categoriaOperaQuery = supabase
+        .from("categoria_opera_lotto")
+        .select("lotto_id, categoria_opera(*)")
+        .eq("categoria_opera_id", categoriaOpera);
+      
+      // Se soloPrevalente è true, filtriamo solo per categorie prevalenti
+      if (soloPrevalente) {
+        categoriaOperaQuery = categoriaOperaQuery.eq("cod_tipo_categoria", "P");
       }
+      
+      const { data: lottiWithCategoria, error: categoriaError } = await categoriaOperaQuery;
+      
+      if (categoriaError) {
+        console.error("Errore nel recupero dei lotti con categoria opera:", categoriaError);
+        return { tenders: [], total: 0 };
+      }
+      
+      if (!lottiWithCategoria || lottiWithCategoria.length === 0) {
+        // Nessun lotto corrisponde al filtro
+        return { tenders: [], total: 0 };
+      }
+      
+      // Otteniamo gli ID dei lotti
+      const lottiIds = lottiWithCategoria.map(item => item.lotto_id);
+      
+      // Otteniamo le gare associate a questi lotti
+      const { data: gareWithCategoria, error: gareError } = await supabase
+        .from("lotto")
+        .select("gara_id")
+        .in("id", lottiIds);
+      
+      if (gareError) {
+        console.error("Errore nel recupero delle gare con categoria opera:", gareError);
+        return { tenders: [], total: 0 };
+      }
+      
+      if (!gareWithCategoria || gareWithCategoria.length === 0) {
+        // Nessuna gara corrisponde al filtro
+        return { tenders: [], total: 0 };
+      }
+      
+      // Salviamo gli ID delle gare che corrispondono al filtro categoriaOpera
+      gareIdsWithCategoriaOpera = gareWithCategoria.map(item => item.gara_id);
     }
 
-    // Otteniamo le gare con paginazione
-    const { data: gareData, error: gareError } = await supabase
-      .from("gara")
-      .select("*")
+    // Costruiamo la query per i dati con l'opzione count
+    let dataQuery = supabase.from("gara").select("*", { count: "exact" });
+
+    // Applichiamo i filtri alla query
+    if (searchQuery) {
+      const searchFilter = `titolo.ilike.%${searchQuery}%,descrizione.ilike.%${searchQuery}%`;
+      dataQuery = dataQuery.or(searchFilter);
+    }
+
+    if (startDate) {
+      dataQuery = dataQuery.gte("data_pubblicazione", startDate);
+    }
+
+    if (endDate) {
+      dataQuery = dataQuery.lte("data_pubblicazione", endDate);
+    }
+
+    if (categoria) {
+      dataQuery = dataQuery.eq("natura_principale_id", categoria);
+    }
+
+    if (minValue !== undefined) {
+      dataQuery = dataQuery.gte("importo", minValue);
+    }
+
+    if (maxValue !== undefined) {
+      dataQuery = dataQuery.lte("importo", maxValue);
+    }
+    
+    // Applichiamo il filtro categoriaOpera se presente
+    if (gareIdsWithCategoriaOpera) {
+      dataQuery = dataQuery.in("id", gareIdsWithCategoriaOpera);
+    }
+
+    // Eseguiamo la query per ottenere sia i dati che il conteggio
+    const { data: gareData, count, error: gareError } = await dataQuery
       .order("data_pubblicazione", { ascending: false })
-      .range((page - 1) * pageSize, page * pageSize - 1)
+      .range((page - 1) * pageSize, page * pageSize - 1);
 
     if (gareError) {
-      console.error("Errore nel recupero delle gare:", gareError)
-      return { 
-        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
-        total: MOCK_TENDERS.length 
-      }
+      throw new Error(`Errore nel recupero delle gare: ${gareError.message}`);
     }
 
     if (!gareData || gareData.length === 0) {
-      return { 
-        tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
-        total: MOCK_TENDERS.length 
+      return { tenders: [], total: count || 0 };
+    }
+
+    // Otteniamo i lotti principali per ogni gara
+    const gareIds = gareData.map(gara => gara.id);
+    const { data: lottiData, error: lottiError } = await supabase
+      .from("lotto")
+      .select("*")
+      .in("gara_id", gareIds);
+
+    // Creiamo una mappa dei lotti per gara_id
+    let lottiMap: Record<number, any> = {};
+    if (!lottiError && lottiData) {
+      lottiMap = lottiData.reduce((acc, lotto) => {
+        if (lotto.gara_id) {
+          acc[lotto.gara_id] = lotto;
+        }
+        return acc;
+      }, {} as Record<number, any>);
+    }
+
+    // Otteniamo le categorie opera per tutti i lotti
+    let categorieOperaMap: Record<number, any[]> = {};
+    
+    if (lottiData && lottiData.length > 0) {
+      const lottiIds = lottiData.map(lotto => lotto.id).filter(id => id !== null && id !== undefined);
+      
+      if (lottiIds.length > 0) {
+        const { data: categorieOperaData, error: categorieOperaError } = await supabase
+          .from("categoria_opera_lotto")
+          .select("*, categoria_opera(*)")
+          .in("lotto_id", lottiIds);
+
+        if (!categorieOperaError && categorieOperaData) {
+          categorieOperaMap = categorieOperaData.reduce((acc, item) => {
+            if (item.lotto_id) {
+              if (!acc[item.lotto_id]) {
+                acc[item.lotto_id] = [];
+              }
+              acc[item.lotto_id].push(item.categoria_opera);
+            }
+            return acc;
+          }, {} as Record<number, any[]>);
+        }
       }
     }
 
     // Otteniamo gli enti appaltanti per le gare recuperate
-    const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined)
+    const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined);
     
-    let entiMap: Record<number, any> = {}
+    let entiMap: Record<number, any> = {};
 
     if (entiIds.length > 0) {
-      const { data: entiData, error: entiError } = await supabase.from("ente_appaltante").select("*").in("id", entiIds)
+      const { data: entiData, error: entiError } = await supabase.from("ente_appaltante").select("*").in("id", entiIds);
 
       if (entiError) {
-        console.error("Errore nel recupero degli enti appaltanti:", entiError)
+        console.error("Errore nel recupero degli enti appaltanti:", entiError);
       } else if (entiData) {
         entiMap = entiData.reduce(
           (acc, ente) => {
-            acc[ente.id] = ente
-            return acc
+            acc[ente.id] = ente;
+            return acc;
           },
           {} as Record<number, any>,
-        )
-      }
-    }
-
-    // Otteniamo i lotti principali per ogni gara
-    const gareIds = gareData.map(gara => gara.id)
-    const { data: lottiData, error: lottiError } = await supabase
-      .from("lotto")
-      .select("*")
-      .in("gara_id", gareIds)
-
-    // Creiamo una mappa dei lotti per gara_id
-    let lottiMap: Record<number, any> = {}
-    let lottiIds: number[] = []
-    
-    if (!lottiError && lottiData && lottiData.length > 0) {
-      lottiData.forEach(lotto => {
-        // Per ogni gara, prendiamo solo il primo lotto (principale)
-        if (!lottiMap[lotto.gara_id]) {
-          lottiMap[lotto.gara_id] = lotto
-          lottiIds.push(lotto.id)
-        }
-      })
-    }
-
-    // Otteniamo le categorie opera per tutti i lotti
-    let categorieOperaMap: Record<number, any[]> = {}
-    
-    if (lottiIds.length > 0) {
-      const { data: lottiCategorieData, error: lottiCategorieError } = await supabase
-        .from("lotto_categoria_opera")
-        .select("lotto_id, categoria_opera_id, ruolo")
-        .in("lotto_id", lottiIds)
-
-      if (!lottiCategorieError && lottiCategorieData && lottiCategorieData.length > 0) {
-        // Raggruppiamo le categorie per lotto_id
-        const categorieIds = lottiCategorieData.map(item => item.categoria_opera_id)
-        
-        const { data: categorieDetails, error: categorieDetailsError } = await supabase
-          .from("categoria_opera")
-          .select("*")
-          .in("id", categorieIds)
-
-        if (!categorieDetailsError && categorieDetails) {
-          // Creiamo una mappa delle categorie per lotto_id
-          lottiCategorieData.forEach(link => {
-            if (!categorieOperaMap[link.lotto_id]) {
-              categorieOperaMap[link.lotto_id] = []
-            }
-            
-            const categoriaDetail = categorieDetails.find(cat => cat.id === link.categoria_opera_id)
-            if (categoriaDetail) {
-              categorieOperaMap[link.lotto_id].push({
-                ...categoriaDetail,
-                cod_tipo_categoria: link.ruolo || "S"
-              })
-            }
-          })
-        }
+        );
       }
     }
 
@@ -384,26 +330,23 @@ export async function getTenders(page = 1, pageSize = 10): Promise<{ tenders: Te
           return 0;
         });
       }
-      return tender
-    })
+      return tender;
+    });
     
     return {
       tenders: mappedTenders,
-      total: count || mappedTenders.length
-    }
+      total: count || 0
+    };
   } catch (error) {
-    console.error("Errore generale nel recupero delle gare:", error)
-    return { 
-      tenders: MOCK_TENDERS.slice((page - 1) * pageSize, page * pageSize),
-      total: MOCK_TENDERS.length 
-    }
+    console.error("Errore generale nel recupero delle gare:", error);
+    throw error;
   }
 }
 
 export async function getTenderById(id: string): Promise<Tender | undefined> {
-  // Se non abbiamo le variabili di ambiente, usa i dati mock
+  // Verifica che le variabili di ambiente siano configurate
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return MOCK_TENDERS.find((tender) => tender.id === id)
+    throw new Error("Variabili di ambiente Supabase non configurate.");
   }
 
   try {
@@ -412,20 +355,18 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
     // Verifica se la tabella esiste
     const exists = await tableExists(supabase, "gara")
     if (!exists) {
-      console.warn("La tabella 'gara' non esiste. Utilizzando dati di esempio.")
-      return MOCK_TENDERS.find((tender) => tender.id === id)
+      throw new Error("La tabella 'gara' non esiste.");
     }
 
     // Otteniamo la gara
     const { data: garaData, error: garaError } = await supabase.from("gara").select("*").eq("id", id).single()
 
     if (garaError) {
-      console.error("Errore nel recupero della gara:", garaError)
-      return MOCK_TENDERS.find((tender) => tender.id === id)
+      throw new Error(`Errore nel recupero della gara: ${garaError.message}`);
     }
 
     if (!garaData) {
-      return MOCK_TENDERS.find((tender) => tender.id === id)
+      return undefined;
     }
 
     // Otteniamo l'ente appaltante se disponibile
@@ -462,6 +403,17 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       return mapDatabaseToTender(garaData, enteData)
     }
 
+    // Otteniamo le categorie opera per il lotto
+    let categorieOperaData: any[] = []
+    const { data: categorieOpera, error: categorieOperaError } = await supabase
+      .from("categoria_opera_lotto")
+      .select("*, categoria_opera(*)")
+      .eq("lotto_id", lottoData.id)
+
+    if (!categorieOperaError && categorieOpera) {
+      categorieOperaData = categorieOpera.map((item) => item.categoria_opera).filter(Boolean)
+    }
+
     // Otteniamo la categoria CPV
     let cpvData = undefined
     if (lottoData.cpv_id) {
@@ -471,45 +423,8 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
         .eq("id", lottoData.cpv_id)
         .single()
 
-      if (cpvError) {
-        console.error("Errore nel recupero della categoria CPV:", cpvError)
-      } else {
+      if (!cpvError) {
         cpvData = cpv
-      }
-    }
-
-    // Otteniamo le categorie opera associate al lotto
-    let categorieOperaData = []
-    const { data: categorieOpera, error: categorieOperaError } = await supabase
-      .from("lotto_categoria_opera")
-      .select("categoria_opera_id, ruolo")
-      .eq("lotto_id", lottoData.id)
-
-    if (!categorieOperaError && categorieOpera && categorieOpera.length > 0) {
-      const categorieIds = categorieOpera.map(item => item.categoria_opera_id)
-      
-      const { data: categorieDetails, error: categorieDetailsError } = await supabase
-        .from("categoria_opera")
-        .select("*")
-        .in("id", categorieIds)
-
-      if (!categorieDetailsError && categorieDetails) {
-        // Associamo il ruolo (P/S) a ciascuna categoria
-        categorieOperaData = categorieDetails.map(categoria => {
-          // Troviamo il ruolo corrispondente
-          const linkRecord = categorieOpera.find(link => link.categoria_opera_id === categoria.id)
-          return {
-            ...categoria,
-            cod_tipo_categoria: linkRecord?.ruolo || "S" // Usiamo il ruolo dalla tabella lotto_categoria_opera
-          }
-        }).sort((a, b) => {
-        // Ordina prima le categorie prevalenti (P) e poi le scorporabili
-        if (a.cod_tipo_categoria === "P" && b.cod_tipo_categoria !== "P") return -1;
-        if (a.cod_tipo_categoria !== "P" && b.cod_tipo_categoria === "P") return 1;
-        return 0;
-      });
-      } else {
-        console.error("Errore nel recupero dei dettagli delle categorie opera:", categorieDetailsError)
       }
     }
 
@@ -520,14 +435,14 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
 
   } catch (error) {
     console.error("Errore generale nel recupero della gara:", error)
-    return MOCK_TENDERS.find((tender) => tender.id === id)
+    throw error;
   }
 }
 
 export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
-  // Se non abbiamo le variabili di ambiente, usa i dati mock
+  // Verifica che le variabili di ambiente siano configurate
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return MOCK_TENDERS.filter((tender) => ids.includes(tender.id))
+    throw new Error("Variabili di ambiente Supabase non configurate.");
   }
 
   try {
@@ -536,20 +451,18 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
     // Verifica se la tabella esiste
     const exists = await tableExists(supabase, "gara")
     if (!exists) {
-      console.warn("La tabella 'gara' non esiste. Utilizzando dati di esempio.")
-      return MOCK_TENDERS.filter((tender) => ids.includes(tender.id))
+      throw new Error("La tabella 'gara' non esiste.");
     }
 
     // Otteniamo le gare
     const { data: gareData, error: gareError } = await supabase.from("gara").select("*").in("id", ids)
 
     if (gareError) {
-      console.error("Errore nel recupero delle gare:", gareError)
-      return MOCK_TENDERS.filter((tender) => ids.includes(tender.id))
+      throw new Error(`Errore nel recupero delle gare: ${gareError.message}`);
     }
 
     if (!gareData || gareData.length === 0) {
-      return MOCK_TENDERS.filter((tender) => ids.includes(tender.id))
+      return [];
     }
 
     // Otteniamo gli enti appaltanti per le gare recuperate
@@ -580,20 +493,14 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
     })
   } catch (error) {
     console.error("Errore generale nel recupero delle gare:", error)
-    return MOCK_TENDERS.filter((tender) => ids.includes(tender.id))
+    throw error;
   }
 }
 
 export async function getEntiAppaltanti(): Promise<{ id: string; nome: string }[]> {
-  // Se non abbiamo le variabili di ambiente, usa i dati mock
+  // Verifica che le variabili di ambiente siano configurate
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return [
-      { id: "6", nome: "GRUPPO D'AZIONE COSTIERA GOLFO DI PATTI - SOCIETA' CONSORTILE A R L." },
-      { id: "7", nome: "COMANDO AEROPORTO DI SIGONELLA" },
-      { id: "8", nome: "COMUNE DI NOCIGLIA" },
-      { id: "9", nome: "COMUNE DI BUCCINASCO" },
-      { id: "10", nome: "COMUNE DI SAVIGNANO IRPINO" },
-    ].filter((ente, index, self) => index === self.findIndex((e) => e.id === ente.id))
+    throw new Error("Variabili di ambiente Supabase non configurate.");
   }
 
   try {
@@ -602,27 +509,13 @@ export async function getEntiAppaltanti(): Promise<{ id: string; nome: string }[
     // Verifica se la tabella esiste
     const exists = await tableExists(supabase, "ente_appaltante")
     if (!exists) {
-      console.warn("La tabella 'ente_appaltante' non esiste. Utilizzando dati di esempio.")
-      return [
-        { id: "6", nome: "GRUPPO D'AZIONE COSTIERA GOLFO DI PATTI - SOCIETA' CONSORTILE A R L." },
-        { id: "7", nome: "COMANDO AEROPORTO DI SIGONELLA" },
-        { id: "8", nome: "COMUNE DI NOCIGLIA" },
-        { id: "9", nome: "COMUNE DI BUCCINASCO" },
-        { id: "10", nome: "COMUNE DI SAVIGNANO IRPINO" },
-      ].filter((ente, index, self) => index === self.findIndex((e) => e.id === ente.id))
+      throw new Error("La tabella 'ente_appaltante' non esiste.");
     }
 
     const { data, error } = await supabase.from("ente_appaltante").select("id, denominazione").order("denominazione")
 
     if (error) {
-      console.error("Errore nel recupero degli enti:", error)
-      return [
-        { id: "6", nome: "GRUPPO D'AZIONE COSTIERA GOLFO DI PATTI - SOCIETA' CONSORTILE A R L." },
-        { id: "7", nome: "COMANDO AEROPORTO DI SIGONELLA" },
-        { id: "8", nome: "COMUNE DI NOCIGLIA" },
-        { id: "9", nome: "COMUNE DI BUCCINASCO" },
-        { id: "10", nome: "COMUNE DI SAVIGNANO IRPINO" },
-      ].filter((ente, index, self) => index === self.findIndex((e) => e.id === ente.id))
+      throw new Error(`Errore nel recupero degli enti: ${error.message}`);
     }
 
     return (
@@ -633,24 +526,14 @@ export async function getEntiAppaltanti(): Promise<{ id: string; nome: string }[
     )
   } catch (error) {
     console.error("Errore generale nel recupero degli enti:", error)
-    return [
-      { id: "6", nome: "GRUPPO D'AZIONE COSTIERA GOLFO DI PATTI - SOCIETA' CONSORTILE A R L." },
-      { id: "7", nome: "COMANDO AEROPORTO DI SIGONELLA" },
-      { id: "8", nome: "COMUNE DI NOCIGLIA" },
-      { id: "9", nome: "COMUNE DI BUCCINASCO" },
-      { id: "10", nome: "COMUNE DI SAVIGNANO IRPINO" },
-    ].filter((ente, index, self) => index === self.findIndex((e) => e.id === ente.id))
+    throw error;
   }
 }
 
 export async function getCategorieNatura(): Promise<{ id: string; descrizione: string }[]> {
-  // Se non abbiamo le variabili di ambiente, usa i dati mock
+  // Verifica che le variabili di ambiente siano configurate
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return [
-      { id: "1", descrizione: "Lavori" },
-      { id: "2", descrizione: "Forniture" },
-      { id: "3", descrizione: "Servizi" },
-    ]
+    throw new Error("Variabili di ambiente Supabase non configurate.");
   }
 
   try {
@@ -659,23 +542,13 @@ export async function getCategorieNatura(): Promise<{ id: string; descrizione: s
     // Verifica se la tabella esiste
     const exists = await tableExists(supabase, "natura_principale")
     if (!exists) {
-      console.warn("La tabella 'natura_principale' non esiste. Utilizzando dati di esempio.")
-      return [
-        { id: "1", descrizione: "Lavori" },
-        { id: "2", descrizione: "Forniture" },
-        { id: "3", descrizione: "Servizi" },
-      ]
+      throw new Error("La tabella 'natura_principale' non esiste.");
     }
 
     const { data, error } = await supabase.from("natura_principale").select("id, descrizione").order("descrizione")
 
     if (error) {
-      console.error("Errore nel recupero delle nature:", error)
-      return [
-        { id: "1", descrizione: "Lavori" },
-        { id: "2", descrizione: "Forniture" },
-        { id: "3", descrizione: "Servizi" },
-      ]
+      throw new Error(`Errore nel recupero delle nature: ${error.message}`);
     }
 
     return (
@@ -686,25 +559,15 @@ export async function getCategorieNatura(): Promise<{ id: string; descrizione: s
     )
   } catch (error) {
     console.error("Errore generale nel recupero delle nature:", error)
-    return [
-      { id: "1", descrizione: "Lavori" },
-      { id: "2", descrizione: "Forniture" },
-      { id: "3", descrizione: "Servizi" },
-    ]
+    throw error;
   }
 }
 
 
 export async function getCategorieOpera(): Promise<{ id: string; descrizione: string; id_categoria: string }[]> {
-  // Se non abbiamo le variabili di ambiente, usa i dati mock
+  // Verifica che le variabili di ambiente siano configurate
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return [
-      { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
-      { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
-      { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
-      { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
-      { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
-    ]
+    throw new Error("Variabili di ambiente Supabase non configurate.");
   }
 
   try {
@@ -713,14 +576,7 @@ export async function getCategorieOpera(): Promise<{ id: string; descrizione: st
     // Verifica se la tabella esiste
     const exists = await tableExists(supabase, "categoria_opera")
     if (!exists) {
-      console.warn("La tabella 'categoria_opera' non esiste. Utilizzando dati di esempio.")
-      return [
-        { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
-        { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
-        { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
-        { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
-        { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
-      ]
+      throw new Error("La tabella 'categoria_opera' non esiste.");
     }
 
     const { data, error } = await supabase
@@ -729,14 +585,7 @@ export async function getCategorieOpera(): Promise<{ id: string; descrizione: st
       .order("descrizione")
 
     if (error) {
-      console.error("Errore nel recupero delle categorie opera:", error)
-      return [
-        { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
-        { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
-        { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
-        { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
-        { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
-      ]
+      throw new Error(`Errore nel recupero delle categorie opera: ${error.message}`);
     }
 
     return (
@@ -748,12 +597,6 @@ export async function getCategorieOpera(): Promise<{ id: string; descrizione: st
     )
   } catch (error) {
     console.error("Errore generale nel recupero delle categorie opera:", error)
-    return [
-      { id: "1", descrizione: "OG1 - Edifici civili e industriali", id_categoria: "OG1" },
-      { id: "2", descrizione: "OG2 - Restauro e manutenzione dei beni immobili", id_categoria: "OG2" },
-      { id: "3", descrizione: "OG3 - Strade, autostrade, ponti, viadotti", id_categoria: "OG3" },
-      { id: "4", descrizione: "OS1 - Lavori in terra", id_categoria: "OS1" },
-      { id: "5", descrizione: "OS2-A - Superfici decorate", id_categoria: "OS2-A" },
-    ]
+    throw error;
   }
 }

@@ -32,3 +32,17 @@ export interface Tender {
   partecipanti?: number
   categorieOpera?: CategoriaOpera[] // Aggiunto le categorie opera
 }
+
+export interface TenderFilters {
+  searchQuery?: string;
+  categoriaOpera?: string;
+  soloPrevalente?: boolean;
+  categoria?: string;
+  stato?: string;
+  startDate?: string;
+  endDate?: string;
+  minValue?: number;
+  maxValue?: number;
+  page?: number;
+  pageSize?: number;
+}

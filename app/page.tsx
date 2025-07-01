@@ -4,18 +4,35 @@ import { DatabaseSetupGuide } from "@/components/database-setup-guide"
 import { ClientDashboard } from "@/components/client-dashboard"
 import { ConnectionStatus } from "@/components/connection-status";
 import { createClient } from "@/utils/supabase/server";
+import type { TenderFilters } from "@/lib/types";
 
 // Check if database is configured
 function isDatabaseConfigured(): boolean {
   return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 
-export default async function Home({ searchParams }: { searchParams: { page?: string } }) {
+export default async function Home({ searchParams }: { searchParams: Record<string, string | string[]> }) {
   const databaseConfigured = isDatabaseConfigured()
   
   // Attendi searchParams prima di usarlo
   const params = await searchParams
-  const currentPage = params.page ? parseInt(params.page) : 1
+  
+  // Estrai tutti i parametri di filtro
+  const filters: TenderFilters = {
+    page: params.page ? parseInt(params.page as string) : 1,
+    pageSize: 10,
+    searchQuery: params.searchQuery as string,
+    categoriaOpera: params.categoriaOpera as string,
+    soloPrevalente: params.soloPrevalente === 'true',
+    categoria: params.categoria as string,
+    stato: params.stato as string,
+    startDate: params.startDate as string,
+    endDate: params.endDate as string,
+    minValue: params.minValue ? parseFloat(params.minValue as string) : undefined,
+    maxValue: params.maxValue ? parseFloat(params.maxValue as string) : undefined,
+  }
+  
+  const currentPage = filters.page || 1
 
   if (!databaseConfigured) {
     return (
@@ -35,7 +52,7 @@ export default async function Home({ searchParams }: { searchParams: { page?: st
 
   // Get all data server-side
   const [{ tenders, total }, categorie, categorieOpera] = await Promise.all([
-    getTenders(currentPage, 10),
+    getTenders(filters), // Passa tutti i filtri
     getCategorieNatura(),
     getCategorieOpera(),
   ])
