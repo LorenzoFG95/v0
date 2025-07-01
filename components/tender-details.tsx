@@ -159,7 +159,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
 
               <div>
                 <div className="text-sm font-medium text-gray-500">
-                  Categoria
+                  Descrizione
                 </div>
                 <div>{tender.categoria}</div>
               </div>

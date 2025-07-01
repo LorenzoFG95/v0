@@ -20,16 +20,16 @@ interface TenderCardProps {
 }
 
 // Funzione per determinare la variante del badge in base alla natura principale
-function getNaturaBadgeVariant(natura?: string): "default" | "secondary" | "destructive" | "outline" | "service" {
+function getNaturaBadgeVariant(natura?: string): "lavori" | "forniture" | "servizi" | "outline" {
   if (!natura) return "outline"
   
   switch (natura.toLowerCase()) {
     case "lavori":
-      return "default" // blu
+      return "lavori" // bordo blu
     case "forniture":
-      return "secondary" // grigio
+      return "forniture" // bordo grigio
     case "servizi":
-      return "service" // ambra (meno acceso del rosso)
+      return "servizi" // bordo ambra
     default:
       return "outline"
   }
@@ -131,7 +131,7 @@ export function TenderCard({ tender }: TenderCardProps) {
                 <HoverCard>
                   <HoverCardTrigger asChild>
                     <Badge variant="outline" className="cursor-help">
-                      {tender.cpv}
+                      CPV: {tender.cpv}
                     </Badge>
                   </HoverCardTrigger>
                   <HoverCardContent className="w-80">

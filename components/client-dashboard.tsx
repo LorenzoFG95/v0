@@ -427,7 +427,7 @@ export function ClientDashboard({
               <div className="space-y-2">
                 <label className="flex items-center text-sm font-medium">
                   <Activity size={16} className="mr-2" />
-                  Natura Bando
+                  Settore
                 </label>
                 <Select value={tempFilters.categoria} onValueChange={(value) => updateTempFilter("categoria", value)}>
                   <SelectTrigger>
