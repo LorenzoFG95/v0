@@ -7,7 +7,8 @@ function mapDatabaseToTender(
   enteData?: any,
   lottoData?: any,
   cpvData?: any,
-  naturaPrincipaleData?: any
+  naturaPrincipaleData?: any,
+  criterioAggiudicazioneData?: any
 ): Tender {
   return {
     id: dbData.id.toString(),
@@ -23,15 +24,16 @@ function mapDatabaseToTender(
     cpv: cpvData ? cpvData.codice : "CPV non specificato",
     categoria: cpvData ? cpvData.descrizione : "Non specificata",
     naturaPrincipale: naturaPrincipaleData ? naturaPrincipaleData.descrizione : undefined,
-    procedura: "Procedura Aperta",
+    criterioAggiudicazione: criterioAggiudicazioneData ? criterioAggiudicazioneData.descrizione : undefined,
+    procedura: "Procedura aperta",
     stazioneAppaltante: {
-      id: enteData?.id?.toString() || "",
-      nome: enteData?.denominazione || "Ente non specificato",
-      contatto: "Responsabile " + (enteData?.denominazione || "Ente"),
-      email: "info@" + (enteData?.denominazione?.toLowerCase().replace(/[^a-z0-9]/g, "") || "ente") + ".it",
-      indirizzo: (enteData?.regione ? enteData.regione + ", " : "") + (enteData?.citta || "Italia"),
+      id: enteData?.id?.toString() || "0",
+      nome: enteData?.denominazione || "Stazione appaltante non specificata",
+      contatto: enteData?.contatto || "",
+      email: enteData?.email || "",
+      indirizzo: enteData?.indirizzo || "",
     },
-    partecipanti: undefined,
+    partecipanti: 0,
   }
 }
 
@@ -65,6 +67,7 @@ export async function getTenders(filters: {
   endDate?: string;
   minValue?: number;
   maxValue?: number;
+  criterioAggiudicazione?: string; 
   page?: number;
   pageSize?: number;
 } = {}): Promise<{ tenders: Tender[], total: number }> {
@@ -78,6 +81,7 @@ export async function getTenders(filters: {
     endDate,
     minValue,
     maxValue,
+    criterioAggiudicazione, 
     page = 1,
     pageSize = 10
   } = filters;
@@ -191,6 +195,10 @@ export async function getTenders(filters: {
 
     if (categoria) {
       dataQuery = dataQuery.eq("natura_principale_id", categoria);
+    }
+
+    if (criterioAggiudicazione) {
+      dataQuery = dataQuery.eq("criterio_aggiudicazione_id", criterioAggiudicazione);
     }
 
     if (minValue !== undefined) {
@@ -354,14 +362,49 @@ export async function getTenders(filters: {
       return acc;
     }, {});
 
+    // Recuperiamo i dati criterio aggiudicazione per ogni gara
+    const criterioAggiudicazionePromises = gareData.map(async (gara) => {
+      if (gara?.criterio_aggiudicazione_id) {
+        const { data: criterioAggiudicazione, error: criterioAggiudicazioneError } = await supabase
+          .from("criterio_aggiudicazione")
+          .select("*")
+          .eq("id", gara.criterio_aggiudicazione_id)
+          .single();
+        
+        if (criterioAggiudicazioneError) {
+          console.error("Errore nel recupero del criterio di aggiudicazione:", criterioAggiudicazioneError);
+          return { garaId: gara.id, criterioAggiudicazioneData: undefined };
+        } else {
+          return { garaId: gara.id, criterioAggiudicazioneData: criterioAggiudicazione };
+        }
+      }
+      return { garaId: gara.id, criterioAggiudicazioneData: undefined };
+    });
+
+    const criterioAggiudicazioneResults = await Promise.all(criterioAggiudicazionePromises);
+    const criterioAggiudicazioneMap = criterioAggiudicazioneResults.reduce((acc, result) => {
+      if (result) {
+        acc[result.garaId] = result.criterioAggiudicazioneData;
+      }
+      return acc;
+    }, {});
+    
     // Mappiamo i dati includendo le categorie opera
     const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined;
       const lottoData = lottiMap[gara.id];
       const cpvData = cpvMap[gara.id as keyof typeof cpvMap];
       const naturaPrincipaleData = naturaPrincipaleMap[gara.id as keyof typeof naturaPrincipaleMap];
+      const criterioAggiudicazioneData = criterioAggiudicazioneMap[gara.id as keyof typeof criterioAggiudicazioneMap];
       
-      const tender = mapDatabaseToTender(gara, enteData, lottoData, cpvData, naturaPrincipaleData); 
+      const tender = mapDatabaseToTender(
+        gara, 
+        enteData, 
+        lottoData, 
+        cpvData, 
+        naturaPrincipaleData,
+        criterioAggiudicazioneData
+      );
       
       // Aggiungiamo le categorie opera se disponibili
       if (lottoData && categorieOperaMap[lottoData.id]) {
@@ -638,6 +681,43 @@ export async function getCategorieOpera(): Promise<{ id: string; descrizione: st
     )
   } catch (error) {
     console.error("Errore generale nel recupero delle categorie opera:", error)
+    throw error;
+  }
+}
+
+
+export async function getCriterioAggiudicazione(): Promise<{ id: string; descrizione: string }[]> {
+  // Verifica che le variabili di ambiente siano configurate
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Verifica se la tabella esiste
+    const exists = await tableExists(supabase, "criterio_aggiudicazione")
+    if (!exists) {
+      throw new Error("La tabella 'criterio_aggiudicazione' non esiste.");
+    }
+
+    const { data, error } = await supabase
+      .from("criterio_aggiudicazione")
+      .select("id, descrizione")
+      .order("descrizione")
+
+    if (error) {
+      throw new Error(`Errore nel recupero dei criteri di aggiudicazione: ${error.message}`);
+    }
+
+    return (
+      data?.map((criterio) => ({
+        id: criterio.id.toString(),
+        descrizione: criterio.descrizione,
+      })) || []
+    )
+  } catch (error) {
+    console.error("Errore generale nel recupero dei criteri di aggiudicazione:", error)
     throw error;
   }
 }

@@ -37,7 +37,6 @@ function getNaturaBadgeVariant(natura?: string): "lavori" | "forniture" | "servi
 
 export function TenderCard({ tender }: TenderCardProps) {
   const [favorite, setFavorite] = useState(isFavorite(tender.id))
-  
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -88,7 +87,7 @@ export function TenderCard({ tender }: TenderCardProps) {
           <div className="w-6 flex justify-center">
             <Calendar size={16} className="text-gray-500" />
           </div>
-          <span className="ml-2">Pubblicato: {formatDate(tender.pubblicazione)}</span>
+          <span className="ml-2">Criterio: {tender.criterioAggiudicazione || "Non specificato"}</span>
         </div>
 
         <div className="flex items-center text-sm">

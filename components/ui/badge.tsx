@@ -18,7 +18,7 @@ const badgeVariants = cva(
         service: "border-transparent bg-amber-500 text-white hover:bg-amber-600",
         // Nuove varianti con solo bordo colorato
         lavori: "border-primary text-primary hover:bg-primary/10",
-        forniture: "border-gray-700 text-gray-700 hover:bg-secondary/10", // Modificato da text-secondary a text-gray-700
+        forniture: "border-secondary text-gray-700 hover:bg-secondary/10", // Modificato da text-secondary a text-gray-700
         servizi: "border-amber-500 text-amber-600 hover:bg-amber-50",
       },
     },

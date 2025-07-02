@@ -24,6 +24,7 @@ interface ClientDashboardProps {
   initialTenders: Tender[]
   categorieOpera: { id: string; descrizione: string; id_categoria: string }[]
   categorie: { id: string; descrizione: string }[]
+  criteriAggiudicazione: { id: string; descrizione: string }[] // Aggiunto
   currentPage: number
   totalItems: number
   pageSize: number
@@ -33,6 +34,7 @@ export function ClientDashboard({
   initialTenders, 
   categorieOpera, 
   categorie,
+  criteriAggiudicazione, // Aggiungere questa riga
   currentPage,
   totalItems,
   pageSize
@@ -45,6 +47,7 @@ export function ClientDashboard({
   const [searchQuery, setSearchQuery] = useState("")
 
   // Filter State
+  // Filter State
   const [filters, setFilters] = useState({
     categoriaOpera: "all",
     soloPrevalente: false,
@@ -54,8 +57,9 @@ export function ClientDashboard({
     endDate: "",
     minValue: "",
     maxValue: "",
-  })
-
+    criterioAggiudicazione: "all",
+  });
+  
   // Temporary filter state (for when user is editing filters but hasn't applied them yet)
   const [tempFilters, setTempFilters] = useState(filters)
 
@@ -163,7 +167,8 @@ export function ClientDashboard({
       filters.startDate !== "" ||
       filters.endDate !== "" ||
       filters.minValue !== "" ||
-      filters.maxValue !== ""
+      filters.maxValue !== "" ||
+      filters.criterioAggiudicazione !== "all"
     )
   }, [searchQuery, filters])
 
@@ -212,6 +217,10 @@ export function ClientDashboard({
     if (filters.maxValue) {
       queryParams.append('maxValue', filters.maxValue);
     }
+
+    if (filters.criterioAggiudicazione !== 'all') {
+      queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
+    }  
     
     // Navighiamo alla stessa pagina ma con i nuovi parametri di query
     router.push(`${pathname}?${queryParams.toString()}`);
@@ -266,6 +275,10 @@ export function ClientDashboard({
     if (tempFilters.maxValue) {
       queryParams.append('maxValue', tempFilters.maxValue);
     }
+
+    if (tempFilters.criterioAggiudicazione !== 'all') {
+      queryParams.append('criterioAggiudicazione', tempFilters.criterioAggiudicazione);
+    }
     
     if (searchQuery.trim()) {
       queryParams.append('searchQuery', searchQuery.trim());
@@ -287,6 +300,7 @@ export function ClientDashboard({
       endDate: "",
       minValue: "",
       maxValue: "",
+      criteriAggiudicazione: "all",
     }
     setFilters(resetState)
     setTempFilters(resetState)
@@ -349,6 +363,11 @@ export function ClientDashboard({
   
   if (filters.maxValue) {
     queryParams.append('maxValue', filters.maxValue);
+  }
+  
+  // In handleSearch, applyFilters e changePage
+  if (filters.criterioAggiudicazione !== 'all') {
+  queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
   }
   
   router.push(`${pathname}?${queryParams.toString()}`);
@@ -511,6 +530,26 @@ export function ClientDashboard({
                   onChange={(e) => updateTempFilter("maxValue", e.target.value)}
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center text-sm font-medium">
+                  <Activity size={16} className="mr-2" />
+                  Criterio di Aggiudicazione
+                </label>
+                <Select value={tempFilters.criterioAggiudicazione} onValueChange={(value) => updateTempFilter("criterioAggiudicazione", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutti" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti</SelectItem>
+                    {criteriAggiudicazione.map((criterio) => (
+                      <SelectItem key={criterio.id} value={criterio.id}>
+                        {criterio.descrizione}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
@@ -546,6 +585,11 @@ export function ClientDashboard({
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
               Stato: {filters.stato}
             </span>
+          )}
+          {filters.criterioAggiudicazione !== "all" && (
+            <Badge variant="outline" className="mr-2">
+              Criterio: {criteriAggiudicazione.find((c) => c.id === filters.criterioAggiudicazione)?.descrizione || filters.criterioAggiudicazione}
+            </Badge>
           )}
           <button
             onClick={resetFilters}

@@ -26,11 +26,12 @@ export interface Tender {
   inizioGara: string
   cpv: string
   categoria: string
-  naturaPrincipale?: string // Aggiunto il campo per la natura principale
+  naturaPrincipale?: string 
+  criterioAggiudicazione?: string
   procedura: string
   stazioneAppaltante: StazioneAppaltante
   partecipanti?: number
-  categorieOpera?: CategoriaOpera[] // Aggiunto le categorie opera
+  categorieOpera?: CategoriaOpera[] 
 }
 
 export interface TenderFilters {
@@ -43,6 +44,7 @@ export interface TenderFilters {
   endDate?: string;
   minValue?: number;
   maxValue?: number;
+  criterioAggiudicazione?: string; 
   page?: number;
   pageSize?: number;
 }

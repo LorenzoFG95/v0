@@ -1,5 +1,5 @@
 import { Header } from "@/components/header"
-import { getTenders, getCategorieNatura, getCategorieOpera } from "@/lib/data"
+import { getTenders, getCategorieNatura, getCategorieOpera, getCriterioAggiudicazione } from "@/lib/data"
 import { DatabaseSetupGuide } from "@/components/database-setup-guide"
 import { ClientDashboard } from "@/components/client-dashboard"
 import { ConnectionStatus } from "@/components/connection-status";
@@ -30,7 +30,8 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
     endDate: params.endDate as string,
     minValue: params.minValue ? parseFloat(params.minValue as string) : undefined,
     maxValue: params.maxValue ? parseFloat(params.maxValue as string) : undefined,
-  }
+    criterioAggiudicazione: params.criterioAggiudicazione as string,
+  };
   
   const currentPage = filters.page || 1
 
@@ -51,10 +52,11 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
   }
 
   // Get all data server-side
-  const [{ tenders, total }, categorie, categorieOpera] = await Promise.all([
+  const [{ tenders, total }, categorie, categorieOpera, criteriAggiudicazione] = await Promise.all([
     getTenders(filters), // Passa tutti i filtri
     getCategorieNatura(),
     getCategorieOpera(),
+    getCriterioAggiudicazione(), // Aggiunto
   ])
 
   return (
@@ -70,6 +72,7 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
           initialTenders={tenders} 
           categorieOpera={categorieOpera} 
           categorie={categorie} 
+          criteriAggiudicazione={criteriAggiudicazione} // Aggiunto
           currentPage={currentPage}
           totalItems={total}
           pageSize={10}
