@@ -8,7 +8,8 @@ function mapDatabaseToTender(
   lottoData?: any,
   cpvData?: any,
   naturaPrincipaleData?: any,
-  criterioAggiudicazioneData?: any
+  criterioAggiudicazioneData?: any,
+  tipoProceduraData?: any
 ): Tender {
   return {
     id: dbData.id.toString(),
@@ -25,7 +26,7 @@ function mapDatabaseToTender(
     categoria: cpvData ? cpvData.descrizione : "Non specificata",
     naturaPrincipale: naturaPrincipaleData ? naturaPrincipaleData.descrizione : undefined,
     criterioAggiudicazione: criterioAggiudicazioneData ? criterioAggiudicazioneData.descrizione : undefined,
-    procedura: "Procedura aperta",
+    procedura: tipoProceduraData ? tipoProceduraData.descrizione : "Procedura aperta", // Usa il valore dal database
     stazioneAppaltante: {
       id: enteData?.id?.toString() || "0",
       nome: enteData?.denominazione || "Stazione appaltante non specificata",
@@ -99,7 +100,7 @@ export async function getTenders(filters: {
       throw new Error("La tabella 'gara' non esiste.");
     }
 
-    // Se abbiamo un filtro per categoriaOpera, otteniamo prima gli ID delle gare che corrispondono
+    // Se abbiamo un filtro per categoriaOpera, otteniamo prima gli ID delle gare che corrispondono alla categoria
     let gareIdsWithCategoriaOpera: number[] | null = null;
     
     if (categoriaOpera) {
@@ -287,8 +288,8 @@ export async function getTenders(filters: {
     }
 
     // Otteniamo gli enti appaltanti per le gare recuperate
-    const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined);
-    
+    const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined)
+
     let entiMap: Record<number, any> = {};
 
     if (entiIds.length > 0) {
@@ -388,7 +389,34 @@ export async function getTenders(filters: {
       }
       return acc;
     }, {});
-    
+
+    // Recuperiamo i dati tipo procedura per ogni gara
+    const tipoProceduraPromises = gareData.map(async (gara) => {
+      if (gara?.tipo_procedura_id) {
+        const { data: tipoProcedura, error: tipoProceduraError } = await supabase
+          .from("tipo_procedura")
+          .select("*")
+          .eq("id", gara.tipo_procedura_id)
+          .single();
+        
+        if (tipoProceduraError) {
+          console.error("Errore nel recupero del tipo di procedura:", tipoProceduraError);
+          return { garaId: gara.id, tipoProceduraData: undefined };
+        } else {
+          return { garaId: gara.id, tipoProceduraData: tipoProcedura };
+        }
+      }
+      return { garaId: gara.id, tipoProceduraData: undefined };
+    });
+
+    const tipoProceduraResults = await Promise.all(tipoProceduraPromises);
+    const tipoProceduraMap = tipoProceduraResults.reduce((acc, result) => {
+      if (result) {
+        acc[result.garaId] = result.tipoProceduraData;
+      }
+      return acc;
+    }, {});
+
     // Mappiamo i dati includendo le categorie opera
     const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined;
@@ -396,6 +424,7 @@ export async function getTenders(filters: {
       const cpvData = cpvMap[gara.id as keyof typeof cpvMap];
       const naturaPrincipaleData = naturaPrincipaleMap[gara.id as keyof typeof naturaPrincipaleMap];
       const criterioAggiudicazioneData = criterioAggiudicazioneMap[gara.id as keyof typeof criterioAggiudicazioneMap];
+      const tipoProceduraData = tipoProceduraMap[gara.id as keyof typeof tipoProceduraMap];
       
       const tender = mapDatabaseToTender(
         gara, 
@@ -403,7 +432,8 @@ export async function getTenders(filters: {
         lottoData, 
         cpvData, 
         naturaPrincipaleData,
-        criterioAggiudicazioneData
+        criterioAggiudicazioneData,
+        tipoProceduraData
       );
       
       // Aggiungiamo le categorie opera se disponibili
@@ -512,8 +542,22 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       }
     }
 
+    // Otteniamo il tipo di procedura
+    let tipoProceduraData = undefined
+    if (garaData.tipo_procedura_id) {
+      const { data: tipoProcedura, error: tipoProceduraError } = await supabase
+        .from("tipo_procedura")
+        .select("*")
+        .eq("id", garaData.tipo_procedura_id)
+        .single()
+
+      if (!tipoProceduraError) {
+        tipoProceduraData = tipoProcedura
+      }
+    }
+
     // Mappiamo i dati includendo le categorie opera
-    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData)
+    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, undefined, undefined, tipoProceduraData)
     tender.categorieOpera = categorieOperaData
     return tender
 
@@ -549,31 +593,11 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
       return [];
     }
 
-    // Otteniamo gli enti appaltanti per le gare recuperate
-    const entiIds = gareData.map((gara) => gara.ente_appaltante_id).filter((id) => id !== null && id !== undefined)
-    
-    let entiMap: Record<number, any> = {}
-
-    if (entiIds.length > 0) {
-      const { data: entiData, error: entiError } = await supabase.from("ente_appaltante").select("*").in("id", entiIds)
-
-      if (entiError) {
-        console.error("Errore nel recupero degli enti appaltanti:", entiError);
-      } else if (entiData) {
-        entiMap = entiData.reduce(
-          (acc, ente) => {
-            acc[ente.id] = ente
-            return acc
-          },
-          {} as Record<number, any>,
-        )
-      }
-    }
-
     // Mappiamo i dati
     return gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined
-      return mapDatabaseToTender(gara, enteData)
+      const tipoProceduraData = gara.tipo_procedura_id ? tipoProceduraMap[gara.tipo_procedura_id] : undefined
+      return mapDatabaseToTender(gara, enteData, undefined, undefined, undefined, undefined, tipoProceduraData)
     })
   } catch (error) {
     console.error("Errore generale nel recupero delle gare:", error)
