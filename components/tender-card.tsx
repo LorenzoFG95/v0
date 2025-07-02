@@ -93,7 +93,7 @@ export function TenderCard({ tender }: TenderCardProps) {
         <div className="flex justify-between items-start">
           <div className="flex gap-2">
             <Badge variant="outline" className="mb-2">
-              {tender.planificazione}
+              {tender.procedura}
             </Badge>
             {naturaPrincipale && (
               <Badge variant={getNaturaBadgeVariant(naturaPrincipale)} className="mb-2">
@@ -183,7 +183,7 @@ export function TenderCard({ tender }: TenderCardProps) {
       </CardContent>
       <CardFooter className="flex justify-between pt-2">
         <div className="flex items-center gap-2">
-          <Badge variant={tender.procedura === "Procedura Aperta" ? "default" : "secondary"}>{tender.procedura}</Badge>
+          {/* Badge della procedura rimosso da qui */}
         </div>
         <HoverCard>
           <HoverCardTrigger asChild>
