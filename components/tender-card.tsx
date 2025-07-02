@@ -35,6 +35,39 @@ function getNaturaBadgeVariant(natura?: string): "lavori" | "forniture" | "servi
   }
 }
 
+// Funzione per determinare lo stile della scadenza in base alla data
+function getDeadlineStyle(deadlineDate: string): { color: string; text: string } {
+  const today = new Date();
+  const deadline = new Date(deadlineDate);
+  const oneWeek = 7 * 24 * 60 * 60 * 1000; // Una settimana in millisecondi
+  
+  // Rimuovi l'orario per confrontare solo le date
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  
+  const timeDiff = deadline.getTime() - today.getTime();
+  
+  if (timeDiff < 0) {
+    // Scadenza passata
+    return { 
+      color: "text-red-600 bg-red-50", 
+      text: "Scaduta il" 
+    };
+  } else if (timeDiff <= oneWeek) {
+    // Scadenza entro una settimana
+    return { 
+      color: "text-yellow-600 bg-yellow-50", 
+      text: "Scade" 
+    };
+  } else {
+    // Scadenza oltre una settimana (default)
+    return { 
+      color: "text-green-600 bg-green-50", 
+      text: "Scade" 
+    };
+  }
+}
+
 export function TenderCard({ tender }: TenderCardProps) {
   const [favorite, setFavorite] = useState(isFavorite(tender.id))
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -50,6 +83,9 @@ export function TenderCard({ tender }: TenderCardProps) {
     tender.categoria?.toLowerCase().includes("fornitur") ? "Forniture" :
     tender.categoria?.toLowerCase().includes("servizi") ? "Servizi" : undefined
   )
+  
+  // Determina lo stile della scadenza
+  const deadlineStyle = getDeadlineStyle(tender.scadenza);
 
   return (
     <Card className="h-full hover:shadow-md transition-shadow">
@@ -151,12 +187,14 @@ export function TenderCard({ tender }: TenderCardProps) {
         </div>
         <HoverCard>
           <HoverCardTrigger asChild>
-            <div className="text-sm font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md cursor-help">
-              Scade: {formatDate(tender.scadenza)}
+            <div className={`text-sm font-medium ${deadlineStyle.color} px-2 py-1 rounded-md cursor-help`}>
+              {deadlineStyle.text}: {formatDate(tender.scadenza)}
             </div>
           </HoverCardTrigger>
-          <HoverCardContent>
-            <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
+          <HoverCardContent className="w-auto">
+            <div className="space-y-1">
+              <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
+            </div>
           </HoverCardContent>
         </HoverCard>
       </CardFooter>
