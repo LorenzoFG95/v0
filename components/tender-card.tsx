@@ -149,9 +149,16 @@ export function TenderCard({ tender }: TenderCardProps) {
         <div className="flex items-center gap-2">
           <Badge variant={tender.procedura === "Procedura Aperta" ? "default" : "secondary"}>{tender.procedura}</Badge>
         </div>
-        <div className="text-sm font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md">
-          Scade: {formatDate(tender.scadenza)}
-        </div>
+        <HoverCard>
+          <HoverCardTrigger asChild>
+            <div className="text-sm font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md cursor-help">
+              Scade: {formatDate(tender.scadenza)}
+            </div>
+          </HoverCardTrigger>
+          <HoverCardContent>
+            <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
+          </HoverCardContent>
+        </HoverCard>
       </CardFooter>
     </Card>
   )
