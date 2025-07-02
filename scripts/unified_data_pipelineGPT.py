@@ -288,9 +288,18 @@ def get_lookup_maps() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
             stato_map[item["codice"].lower()] = item["id"]
     except Exception as exc:
         print(f"  ↳ errore recupero stato_procedura: {exc}")
+
+        # Mappa per tipo_procedura (codice -> id)
+    tipo_procedura_map: Dict[str, int] = {}
+    try:
+        res = supabase.table("tipo_procedura").select("id,codice").execute()
+        for item in res.data:
+            tipo_procedura_map[item["codice"].lower()] = item["id"]
+    except Exception as exc:
+        print(f"  ↳ errore recupero tipo_procedura: {exc}")
     
-    print(f"✔  Recuperate {len(natura_map)} nature, {len(criterio_map)} criteri e {len(stato_map)} stati")
-    return natura_map, criterio_map, stato_map
+    print(f"✔  Recuperate {len(natura_map)} nature, {len(criterio_map)} criteri, {len(stato_map)} stati e {len(stato_map)} stati")
+    return natura_map, criterio_map, stato_map, tipo_procedura_map
 
 def process_categorie_opera(bandi: List[Dict]) -> Dict[str, int]:
     """
@@ -395,12 +404,13 @@ def process_categorie_cpv(bandi: List[Dict]) -> Dict[str, int]:
 
 
 def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: Dict[str, int], cpv_map: Dict[str, int],
-                      natura_map: Dict[str, int], criterio_map: Dict[str, int], stato_map: Dict[str, int]):
+                      natura_map: Dict[str, int], criterio_map: Dict[str, int], stato_map: Dict[str, int], tipo_procedura_map: Dict[str, int]):
     """Elabora i dati di gare, lotti e avvisi."""
     print("Elaborazione gare, lotti e avvisi…")
     
-    # Debug: stampa i contenuti di natura_map
+    # Debug: stampa i contenuti delle mappe
     print(f"  ↳ natura_map contiene: {natura_map}")
+    print(f"  ↳ tipo_procedura_map contiene: {tipo_procedura_map}")
     
     gare = lotti = avvisi = links = 0
 
@@ -422,10 +432,11 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
         if not ente_id:
             continue                        # ente non caricato → saltiamo
 
-        # Estrai natura_principale, criterio_aggiudicazione e stato_procedura
+        # Estrai natura_principale, criterio_aggiudicazione, stato_procedura e tipo_procedura
         natura_principale = None
         criterio_aggiudicazione = None
         stato_procedura = None
+        tipo_procedura = None
         
         # Cerca nei dati del bando
         for section in sections:
@@ -438,6 +449,13 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
         # Se non trovati, cerca nei dettagli CIG
         if not natura_principale and bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO"):
             natura_principale = bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO")
+        
+        # Estrai il tipo di procedura
+        if bando_json.get("TIPO_SCELTA_CONTRAENTE"):
+            tipo_procedura = bando_json.get("TIPO_SCELTA_CONTRAENTE")
+        elif bando_json.get("tipo_procedura_aggiudicazione"):
+            tipo_procedura = bando_json.get("tipo_procedura_aggiudicazione")
+        
         
         # Estrai il codice CPV dal bando
         cpv_id = None
@@ -609,6 +627,51 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                     stato_procedura_id = stato_map.get("active")  # Default
                     print(f"  ↳ Usando valore default 'active' -> {stato_procedura_id}")
 
+            tipo_procedura_id = None
+            if tipo_procedura:
+                # Dizionario di mappatura per tipo_procedura
+                tipo_procedura_mapping = {
+                    "aperta": "open",
+                    "open": "open",
+                    "ristretta": "restricted",
+                    "restricted": "restricted",
+                    "negoziata": "negotiated",
+                    "negotiated": "negotiated",
+                    "competitiva": "competitive_dialogue",
+                    "competitive": "competitive_dialogue",
+                    "dialogo": "competitive_dialogue",
+                    "dialogue": "competitive_dialogue",
+                    "competitive_dialogue": "competitive_dialogue",
+                    "diretto": "direct",
+                    "direct": "direct",
+                    "affidamento": "direct"
+                }
+                    # Normalizza e cerca nella mappa
+                tipo_procedura_norm = tipo_procedura.lower()
+                
+                # Aggiungi debug per vedere cosa contiene tipo_procedura
+                print(f"  ↳ Tipo procedura trovato: '{tipo_procedura}', normalizzato: '{tipo_procedura_norm}'")
+                
+                # Prima verifica se il valore normalizzato è esattamente uguale a una delle chiavi
+                if tipo_procedura_norm in tipo_procedura_mapping:
+                    tipo_procedura_id = tipo_procedura_map.get(tipo_procedura_mapping[tipo_procedura_norm])
+                    print(f"  ↳ Mappato esattamente a {tipo_procedura_mapping[tipo_procedura_norm]} -> {tipo_procedura_id}")
+                else:
+                    # Altrimenti cerca se una delle chiavi è contenuta nel valore normalizzato
+                    for key, value in tipo_procedura_mapping.items():
+                        if key in tipo_procedura_norm:
+                            tipo_procedura_id = tipo_procedura_map.get(value)
+                            print(f"  ↳ Mappato parzialmente a {value} -> {tipo_procedura_id}")
+                            break
+                    
+                    if not tipo_procedura_id:
+                        print(f"  ⚠️ Tipo procedura non mappato: '{tipo_procedura}'")
+                        # Usa open come default se non è stato possibile mappare
+                        tipo_procedura_id = tipo_procedura_map.get("open")  # Default
+                        print(f"  ↳ Usando valore default 'open' -> {tipo_procedura_id}")
+
+        # ------------------------- LOTTI -------------------------
+
         gara_payload = {
             "cig": cig,
             "cup": (bando_json.get("CUP") or [{}])[0].get("CUP")
@@ -623,6 +686,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             "natura_principale_id": natura_principale_id,
             "criterio_aggiudicazione_id": criterio_aggiudicazione_id,
             "stato_procedura_id": stato_procedura_id,
+            "tipo_procedura_id": tipo_procedura_id,  # Nuovo campo
         }
         try:
             res = (
@@ -780,8 +844,8 @@ def main():
     enti_map = process_enti_appaltanti(merged)
     cat_map = process_categorie_opera(merged)
     cpv_map = process_categorie_cpv(merged)
-    natura_map, criterio_map, stato_map = get_lookup_maps()
-    process_gare_e_lotti(merged, enti_map, cat_map, cpv_map, natura_map, criterio_map, stato_map)
+    natura_map, criterio_map, stato_map, tipo_procedura_map = get_lookup_maps()
+    process_gare_e_lotti(merged, enti_map, cat_map, cpv_map, natura_map, criterio_map, stato_map, tipo_procedura_map)
 
     print(f"✅  Pipeline completata in {time.time() - start:.1f}s")
 
