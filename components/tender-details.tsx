@@ -88,17 +88,17 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
           </div>
 
-          <div className="flex items-center">
-            <div className="bg-purple-100 p-2 rounded-full">
-              <Users className="text-purple-600" size={20} />
-            </div>
-            <div className="ml-3">
-              <div className="text-sm text-gray-500">Partecipanti</div>
-              <div className="font-medium">
-                {tender.partecipanti || "Non disponibile"}
+          {tender.partecipanti ? (
+            <div className="flex items-center">
+              <div className="bg-purple-100 p-2 rounded-full">
+                <Users className="text-purple-600" size={20} />
+              </div>
+              <div className="ml-3">
+                <div className="text-sm text-gray-500">Partecipanti</div>
+                <div className="font-medium">{tender.partecipanti}</div>
               </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
 
