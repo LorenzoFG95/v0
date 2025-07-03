@@ -101,9 +101,23 @@ export function TenderCard({ tender }: TenderCardProps) {
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="icon" onClick={handleFavoriteClick} className="h-8 w-8">
-            <Bookmark size={18} className={favorite ? "fill-red-500 text-red-500" : ""} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <div className={`text-sm font-medium ${deadlineStyle.color} px-2 py-1 rounded-md cursor-help`}>
+                  {deadlineStyle.text}: {formatDate(tender.scadenza)}
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-auto">
+                <div className="space-y-1">
+                  <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            <Button variant="ghost" size="icon" onClick={handleFavoriteClick} className="h-8 w-8">
+              <Bookmark size={18} className={favorite ? "fill-red-500 text-red-500" : ""} />
+            </Button>
+          </div>
         </div>
         <h3 className="font-bold text-lg line-clamp-2">{tender.stazioneAppaltante.nome}</h3>
       </CardHeader>
@@ -185,18 +199,7 @@ export function TenderCard({ tender }: TenderCardProps) {
         <div className="flex items-center gap-2">
           {/* Badge della procedura rimosso da qui */}
         </div>
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <div className={`text-sm font-medium ${deadlineStyle.color} px-2 py-1 rounded-md cursor-help`}>
-              {deadlineStyle.text}: {formatDate(tender.scadenza)}
-            </div>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-auto">
-            <div className="space-y-1">
-              <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
+        {/* La scadenza è stata spostata in alto */}
       </CardFooter>
     </Card>
   )

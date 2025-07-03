@@ -11,7 +11,7 @@ import {
   Users,
   Clock,
   Hash,
-  Link, // Icona Link per i documenti di gara
+  Link, // Aggiungi l'icona Link
 } from "lucide-react";
 import {
   HoverCard,
@@ -56,7 +56,6 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
 
         <p className="text-gray-700 mb-6">{tender.descrizione}</p>
         
-        {/* Rimosso il blocco dei documenti di gara da qui */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center">
@@ -103,6 +102,28 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
           ) : null}
         </div>
+
+                {/* Aggiungi la visualizzazione del link ai documenti di gara */}
+        {tender.documentiDiGaraLink && (
+          <div className="mt-6 p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center">
+              <Link className="text-green-600 mr-2" size={20} />
+              <div>
+                <div className="text-sm text-green-600 font-medium">
+                  Documenti di Gara
+                </div>
+                <a 
+                  href={tender.documentiDiGaraLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  Scarica i documenti di gara
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -261,68 +282,6 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           </CardContent>
         </Card>
       </div>
-      
-      {/* Card della Timeline */}
-      <Card className="md:col-span-2">
-        <CardHeader className="pb-2">
-          <h2 className="text-lg font-medium">Timeline</h2>
-        </CardHeader>
-        <CardContent>
-          <div className="relative pl-8 border-l-2 border-gray-200 space-y-6">
-            <div className="relative">
-              <div className="absolute -left-[25px] bg-blue-600 rounded-full w-4 h-4"></div>
-              <div className="font-medium">Pubblicazione</div>
-              <div className="text-sm text-gray-500">
-                {formatDate(tender.pubblicazione)} 06:00
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -left-[25px] bg-green-600 rounded-full w-4 h-4"></div>
-              <div className="font-medium">Inizio Gara</div>
-              <div className="text-sm text-gray-500">
-                {formatDate(tender.inizioGara)} 06:00
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -left-[25px] bg-red-600 rounded-full w-4 h-4"></div>
-              <div className="font-medium">Scadenza Gara</div>
-              <div className="text-sm text-gray-500">
-                {formatDate(tender.scadenza)} 12:00
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Aggiungi la card per i documenti di gara in fondo */}
-      {tender.documentiDiGaraLink && (
-        <Card>
-          <CardHeader className="pb-2">
-            <h2 className="text-lg font-medium flex items-center">
-              <Link className="text-green-600 mr-2" size={18} />
-              Documenti di Gara
-            </h2>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-500">
-                Scarica i documenti relativi a questa gara dal link ufficiale:
-              </p>
-              <a 
-                href={tender.documentiDiGaraLink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <FileText className="mr-2" size={16} />
-                Scarica Documenti
-              </a>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
