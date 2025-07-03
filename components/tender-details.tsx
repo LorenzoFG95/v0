@@ -171,6 +171,15 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 <Badge variant="outline">{tender.procedura}</Badge>
               </div>
 
+              {tender.naturaPrincipale && (
+                <div>
+                  <div className="text-sm font-medium text-gray-500">
+                    Tipo di gara
+                  </div>
+                  <Badge variant="secondary">{tender.naturaPrincipale}</Badge>
+                </div>
+              )}
+
               {tender.categorieOpera && tender.categorieOpera.length > 0 && (
                 <div>
                   <div className="text-sm font-medium text-gray-500 mb-2">

@@ -519,13 +519,26 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
     }
 
     // Otteniamo le categorie opera per il lotto
+    // Otteniamo le categorie opera per il lotto
     let categorieOperaData: any[] = []
     const { data: categorieOpera, error: categorieOperaError } = await supabase
-      .from("categoria_opera_lotto")
+      .from("lotto_categoria_opera")
       .select("*, categoria_opera(*)")
       .eq("lotto_id", lottoData.id)
       if (!categorieOperaError && categorieOpera) {
-        categorieOperaData = categorieOpera.map((item) => item.categoria_opera).filter(Boolean)
+        // Modifica qui: invece di estrarre solo categoria_opera, manteniamo anche il ruolo
+        categorieOperaData = categorieOpera.map((item) => ({
+          ...item.categoria_opera,
+          cod_tipo_categoria: item.ruolo,
+          descrizione_tipo_categoria: item.ruolo === 'P' ? 'Prevalente' : 'Scorporabile'
+        })).filter(Boolean)
+        
+        // Ordiniamo le categorie: prima le prevalenti, poi le scorporabili
+        categorieOperaData.sort((a, b) => {
+          if (a.cod_tipo_categoria === 'P' && b.cod_tipo_categoria !== 'P') return -1;
+          if (a.cod_tipo_categoria !== 'P' && b.cod_tipo_categoria === 'P') return 1;
+          return 0;
+        });
       }
 
     // Otteniamo la categoria CPV
@@ -556,8 +569,22 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       }
     }
 
+    // Otteniamo la natura principale
+    let naturaPrincipaleData = undefined
+    if (garaData.natura_principale_id) {
+      const { data: naturaPrincipale, error: naturaPrincipaleError } = await supabase
+        .from("natura_principale")
+        .select("*")
+        .eq("id", garaData.natura_principale_id)
+        .single()
+
+      if (!naturaPrincipaleError) {
+        naturaPrincipaleData = naturaPrincipale
+      }
+    }
+
     // Mappiamo i dati includendo le categorie opera
-    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, undefined, undefined, tipoProceduraData)
+    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, naturaPrincipaleData, undefined, tipoProceduraData)
     tender.categorieOpera = categorieOperaData
     return tender
 
