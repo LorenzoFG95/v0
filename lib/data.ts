@@ -9,7 +9,7 @@ function mapDatabaseToTender(
   cpvData?: any,
   naturaPrincipaleData?: any,
   criterioAggiudicazioneData?: any,
-  tipoProceduraData?: any
+  tipoProceduraData?: any,
 ): Tender {
   return {
     id: dbData.id.toString(),
@@ -35,6 +35,7 @@ function mapDatabaseToTender(
       indirizzo: enteData?.indirizzo || "",
     },
     partecipanti: 0,
+    documentiDiGaraLink: dbData.documenti_di_gara_link || undefined, 
   }
 }
 

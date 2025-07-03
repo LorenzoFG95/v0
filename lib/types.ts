@@ -31,7 +31,8 @@ export interface Tender {
   procedura: string
   stazioneAppaltante: StazioneAppaltante
   partecipanti?: number
-  categorieOpera?: CategoriaOpera[] 
+  categorieOpera?: CategoriaOpera[]
+  documentiDiGaraLink?: string 
 }
 
 export interface TenderFilters {

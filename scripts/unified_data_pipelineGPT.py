@@ -437,6 +437,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
         criterio_aggiudicazione = None
         stato_procedura = None
         tipo_procedura = None
+        documenti_di_gara_link = None  # Nuovo campo per i link ai documenti di gara
         
         # Cerca nei dati del bando
         for section in sections:
@@ -445,6 +446,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                 if items:
                     natura_principale = items[0].get("natura_principale")
                     criterio_aggiudicazione = items[0].get("criteri_aggiudicazione")
+                    documenti_di_gara_link = items[0].get("documenti_di_gara_link")  # Estrai il link ai documenti
         
         # Se non trovati, cerca nei dettagli CIG
         if not natura_principale and bando_json.get("OGGETTO_PRINCIPALE_CONTRATTO"):
@@ -686,7 +688,8 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             "natura_principale_id": natura_principale_id,
             "criterio_aggiudicazione_id": criterio_aggiudicazione_id,
             "stato_procedura_id": stato_procedura_id,
-            "tipo_procedura_id": tipo_procedura_id,  # Nuovo campo
+            "tipo_procedura_id": tipo_procedura_id,
+            "documenti_di_gara_link": documenti_di_gara_link,
         }
         try:
             res = (
