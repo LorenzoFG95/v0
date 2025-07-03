@@ -555,8 +555,8 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                 "qualità": "quality",
                 "qualita": "quality",
                 "quality": "quality",
-                "costo": "cost",
-                "cost": "cost",
+                "costo": "quality",
+                "cost": "quality",
                 "economicamente vantaggiosa": "quality",  # Spesso si riferisce a qualità-prezzo
                 "offerta economicamente vantaggiosa": "quality"
             }
