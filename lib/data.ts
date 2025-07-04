@@ -19,6 +19,7 @@ function mapDatabaseToTender(
     descrizione: dbData.descrizione || "Descrizione non disponibile",
     planificazione: "Pianificazione",
     valore: lottoData?.valore || dbData.importo_totale || 0,
+    importoSicurezza: dbData.importo_sicurezza || 0, // Mappatura del campo importo_sicurezza
     pubblicazione: dbData.data_pubblicazione || new Date().toISOString(),
     scadenza: dbData.scadenza_offerta || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     inizioGara: dbData.data_pubblicazione || new Date().toISOString(),
@@ -584,8 +585,22 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       }
     }
 
+    // Otteniamo il criterio di aggiudicazione
+    let criterioAggiudicazioneData = undefined
+    if (garaData.criterio_aggiudicazione_id) {
+      const { data: criterioAggiudicazione, error: criterioAggiudicazioneError } = await supabase
+        .from("criterio_aggiudicazione")
+        .select("*")
+        .eq("id", garaData.criterio_aggiudicazione_id)
+        .single()
+
+      if (!criterioAggiudicazioneError) {
+        criterioAggiudicazioneData = criterioAggiudicazione
+      }
+    }
+
     // Mappiamo i dati includendo le categorie opera
-    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, naturaPrincipaleData, undefined, tipoProceduraData)
+    const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, naturaPrincipaleData, criterioAggiudicazioneData, tipoProceduraData)
     tender.categorieOpera = categorieOperaData
     return tender
 

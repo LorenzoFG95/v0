@@ -21,6 +21,7 @@ export interface Tender {
   descrizione: string
   planificazione: string
   valore: number
+  importoSicurezza?: number // Campo aggiunto per gli oneri di sicurezza
   pubblicazione: string
   scadenza: string
   inizioGara: string

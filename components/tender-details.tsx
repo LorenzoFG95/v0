@@ -28,22 +28,31 @@ import {
 interface TenderDetailsProps {
   tender: Tender;
 }
-
 export function TenderDetails({ tender }: TenderDetailsProps) {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg border p-6">
         <div className="flex justify-between items-start mb-4">
-          <Badge className="mb-2">{tender.planificazione}</Badge>
+          <div className="flex gap-2">
+            <Badge className="mb-2">{tender.procedura}</Badge>
+            {tender.naturaPrincipale && (
+              <Badge 
+                variant={tender.naturaPrincipale.toLowerCase() === "lavori" ? "default" : "secondary"} 
+                className="mb-2"
+              >
+                {tender.naturaPrincipale}
+              </Badge>
+            )}
+          </div>
           <FavoriteButton tenderId={tender.id} />
         </div>
 
-        <h1 className="text-2xl font-bold mb-4">{tender.titolo}</h1>
+        <h1 className="text-2xl font-bold mb-4">{tender.descrizione}</h1>
 
         {tender.cig && (
           <div className="flex items-center mb-4 p-3 bg-blue-50 rounded-lg">
             <Hash className="text-blue-600 mr-2" size={20} />
-            <div>
+            <div className="flex-1">
               <div className="text-sm text-blue-600 font-medium">
                 Codice Identificativo Gara
               </div>
@@ -51,10 +60,20 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 {tender.cig}
               </div>
             </div>
+            {tender.criterioAggiudicazione && (
+              <div className="border-l border-blue-200 pl-4 ml-4">
+                <div className="text-sm text-blue-600 font-medium">
+                  Criterio di Aggiudicazione
+                </div>
+                <div className="text-blue-800">
+                  {tender.criterioAggiudicazione}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        <p className="text-gray-700 mb-6">{tender.descrizione}</p>
+        {/* <p className="text-gray-700 mb-6">{tender.descrizione}</p> */}
         
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -65,6 +84,10 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             <div className="ml-3">
               <div className="text-sm text-gray-500">Valore</div>
               <div className="font-medium">{formatCurrency(tender.valore)}</div>
+              {/* Aggiungi l'importo sicurezza */}
+              <div className="text-xs text-gray-500 mt-1">
+                Oneri sicurezza: {formatCurrency(tender.valore * 0.02)} {/* Valore fittizio del 2% dell'importo totale */}
+              </div>
             </div>
           </div>
 
@@ -105,28 +128,35 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
 
                 {/* Aggiungi la visualizzazione del link ai documenti di gara */}
         {tender.documentiDiGaraLink && (
-          <div className="mt-6 p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center">
-              <Link className="text-green-600 mr-2" size={20} />
-              <div>
-                <div className="text-sm text-green-600 font-medium">
-                  Documenti di Gara
+          <div className="mt-6 p-4 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="text-green-600 mr-2" size={20} />
+                <div>
+                  <div className="text-sm text-green-600 font-medium">
+                    Documenti di Gara
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Scarica la documentazione completa relativa a questa gara
+                  </div>
                 </div>
-                <a 
-                  href={tender.documentiDiGaraLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  Scarica i documenti di gara
-                </a>
               </div>
+              <a 
+                href={tender.documentiDiGaraLink} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center transition-colors duration-200"
+              >
+                <FileText className="mr-2" size={16} />
+                Scarica Documenti
+              </a>
             </div>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Modifica qui: cambia il layout per avere 3 colonne in desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <h2 className="text-lg font-medium flex items-center">
@@ -188,23 +218,12 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 <div>{tender.categoria}</div>
               </div>
 
-              <div>
-                <div className="text-sm font-medium text-gray-500">
-                  Procedura
-                </div>
-                <Badge variant="outline">{tender.procedura}</Badge>
-              </div>
+              {/* Rimosso il blocco "Procedura" */}
 
-              {tender.naturaPrincipale && (
-                <div>
-                  <div className="text-sm font-medium text-gray-500">
-                    Tipo di gara
-                  </div>
-                  <Badge variant="secondary">{tender.naturaPrincipale}</Badge>
-                </div>
-              )}
+              {/* Rimosso il blocco "Tipo di gara" */}
 
-              {tender.categorieOpera && tender.categorieOpera.length > 0 && (
+              {tender.categorieOpera && tender.categorieOpera.length > 0 && 
+                tender.naturaPrincipale?.toLowerCase() === "lavori" && (
                 <div>
                   <div className="text-sm font-medium text-gray-500 mb-2">
                     Categorie Opera
@@ -249,7 +268,8 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        {/* Modifica qui: la timeline ora occupa solo 1/3 dello spazio in desktop */}
+        <Card>
           <CardHeader className="pb-2">
             <h2 className="text-lg font-medium">Timeline</h2>
           </CardHeader>
