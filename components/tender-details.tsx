@@ -12,6 +12,7 @@ import {
   Clock,
   Hash,
   Link, // Aggiungi l'icona Link
+  MapPin, // Aggiungi l'icona MapPin
 } from "lucide-react";
 import {
   HoverCard,
@@ -190,6 +191,20 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                   Indirizzo
                 </div>
                 <div>{tender.stazioneAppaltante.indirizzo}</div>
+                {(tender.stazioneAppaltante.citta || tender.stazioneAppaltante.regione) && (
+                  <div className="mt-1 flex items-center">
+                    <MapPin className="text-red-500 mr-1" size={14} />
+                    {tender.stazioneAppaltante.citta && (
+                      <span className="text-gray-700">{tender.stazioneAppaltante.citta}</span>
+                    )}
+                    {tender.stazioneAppaltante.citta && tender.stazioneAppaltante.regione && (
+                      <span className="text-gray-700"> - </span>
+                    )}
+                    {tender.stazioneAppaltante.regione && (
+                      <span className="text-gray-700">{tender.stazioneAppaltante.regione}</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

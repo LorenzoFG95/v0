@@ -34,6 +34,8 @@ function mapDatabaseToTender(
       contatto: enteData?.contatto || "",
       email: enteData?.email || "",
       indirizzo: enteData?.indirizzo || "",
+      regione: enteData?.regione || "",  // Mappatura del campo regione
+      citta: enteData?.citta || "",      // Mappatura del campo citta
     },
     partecipanti: 0,
     documentiDiGaraLink: dbData.documenti_di_gara_link || undefined, 

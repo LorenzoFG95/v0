@@ -4,6 +4,8 @@ export interface StazioneAppaltante {
   contatto: string
   email: string
   indirizzo: string
+  regione?: string  // Campo aggiunto
+  citta?: string    // Campo aggiunto
 }
 
 export interface CategoriaOpera {
