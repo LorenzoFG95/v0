@@ -72,7 +72,7 @@ export function ClientDashboard({
   
   // Effetto per caricare le città quando cambia la regione
   useEffect(() => {
-    if (tempFilters.regione !== "all") {
+    if (tempFilters.regione !== "all" && tempFilters.regione !== "") {
       const fetchCitta = async () => {
         try {
           const response = await fetch(`/api/citta?regione=${encodeURIComponent(tempFilters.regione)}`);

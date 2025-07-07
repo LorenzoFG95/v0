@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Calendar, Euro, Bookmark, Hash } from "lucide-react"
+import { Calendar, Euro, Bookmark, Hash, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
@@ -120,7 +120,22 @@ export function TenderCard({ tender }: TenderCardProps) {
           </div>
         </div>
         <h3 className="font-bold text-lg line-clamp-2">{tender.stazioneAppaltante.nome}</h3>
+        
+        {/* Aggiungiamo l'informazione sul luogo qui */}
+        {(tender.stazioneAppaltante.regione || tender.stazioneAppaltante.citta) && (
+          <div className="flex items-center text-sm text-gray-600 mt-1">
+            <div className="w-6 flex justify-center">
+              <MapPin size={16} className="text-gray-500" />
+            </div>
+            <span className="ml-2">
+              {[tender.stazioneAppaltante.citta, tender.stazioneAppaltante.regione]
+                .filter(Boolean)
+                .join(", ")}
+            </span>
+          </div>
+        )}
       </CardHeader>
+      
       <CardContent className="pb-2">
         <p className="text-sm text-gray-600 line-clamp-2 mb-4">{tender.descrizione}</p>
 
