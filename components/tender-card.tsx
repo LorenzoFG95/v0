@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { Calendar, Euro, Bookmark, Hash, MapPin } from "lucide-react"
+import { Calendar, Euro, Bookmark, Hash, MapPin, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
@@ -88,7 +88,7 @@ export function TenderCard({ tender }: TenderCardProps) {
   const deadlineStyle = getDeadlineStyle(tender.scadenza);
 
   return (
-    <Card className="h-full hover:shadow-md transition-shadow">
+    <Card className="h-full hover:shadow-md transition-shadow flex flex-col">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className="flex gap-2">
@@ -136,7 +136,7 @@ export function TenderCard({ tender }: TenderCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className="pb-2">
+      <CardContent className="pb-2 flex-grow">
         <p className="text-sm text-gray-600 line-clamp-2 mb-4">{tender.descrizione}</p>
 
         {tender.cig && (
@@ -210,9 +210,12 @@ export function TenderCard({ tender }: TenderCardProps) {
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-between pt-2">
+      <CardFooter className="pt-2 mt-auto">
         <div className="flex items-center gap-2">
-          {/* Badge della procedura rimosso da qui */}
+          <Button variant="outline" size="sm" className="text-blue-600 border-blue-600 hover:bg-blue-50 hover:text-blue-700">
+            <ExternalLink size={16} className="mr-1" />
+            Visualizza dettagli
+          </Button>
         </div>
         {/* La scadenza è stata spostata in alto */}
       </CardFooter>
