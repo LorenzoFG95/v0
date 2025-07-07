@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useMemo } from "react"
-import { Search, SlidersHorizontal, Building, Calendar, Euro, Activity } from "lucide-react"
+import { useState, useMemo, useEffect } from "react"
+import { Search, SlidersHorizontal, Building, Calendar, Euro, Activity, MapPin } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,7 +24,8 @@ interface ClientDashboardProps {
   initialTenders: Tender[]
   categorieOpera: { id: string; descrizione: string; id_categoria: string }[]
   categorie: { id: string; descrizione: string }[]
-  criteriAggiudicazione: { id: string; descrizione: string }[] // Aggiunto
+  criteriAggiudicazione: { id: string; descrizione: string }[]
+  regioni: { regione: string }[]  
   currentPage: number
   totalItems: number
   pageSize: number
@@ -34,7 +35,8 @@ export function ClientDashboard({
   initialTenders, 
   categorieOpera, 
   categorie,
-  criteriAggiudicazione, // Aggiungere questa riga
+  criteriAggiudicazione,
+  regioni,  
   currentPage,
   totalItems,
   pageSize
@@ -58,10 +60,42 @@ export function ClientDashboard({
     minValue: "",
     maxValue: "",
     criterioAggiudicazione: "all",
+    regione: "all",  
+    citta: "all",
   });
   
-  // Temporary filter state (for when user is editing filters but hasn't applied them yet)
+  // State per le città disponibili in base alla regione selezionata
+  const [cittaDisponibili, setCittaDisponibili] = useState<{ citta: string }[]>([]);
+
+    // Temporary filter state (for when user is editing filters but hasn't applied them yet)
   const [tempFilters, setTempFilters] = useState(filters)
+  
+  // Effetto per caricare le città quando cambia la regione
+  useEffect(() => {
+    if (tempFilters.regione !== "all") {
+      const fetchCitta = async () => {
+        try {
+          const response = await fetch(`/api/citta?regione=${encodeURIComponent(tempFilters.regione)}`);
+          if (response.ok) {
+            const data = await response.json();
+            setCittaDisponibili(data);
+          } else {
+            console.error("Errore nel recupero delle città");
+            setCittaDisponibili([]);
+          }
+        } catch (error) {
+          console.error("Errore nel recupero delle città:", error);
+          setCittaDisponibili([]);
+        }
+      };
+      
+      fetchCitta();
+    } else {
+      setCittaDisponibili([]);
+      // Reset del filtro città quando si cambia regione
+      setTempFilters(prev => ({ ...prev, citta: "all" }));
+    }
+  }, [filters.regione, tempFilters.regione]);
 
   // Filter the tenders based on current applied filters and search
   const filteredTenders = useMemo(() => {
@@ -168,7 +202,9 @@ export function ClientDashboard({
       filters.endDate !== "" ||
       filters.minValue !== "" ||
       filters.maxValue !== "" ||
-      filters.criterioAggiudicazione !== "all"
+      filters.criterioAggiudicazione !== "all" ||
+      filters.regione !== "" ||
+      filters.citta !== ""
     )
   }, [searchQuery, filters])
 
@@ -217,12 +253,20 @@ export function ClientDashboard({
     if (filters.maxValue) {
       queryParams.append('maxValue', filters.maxValue);
     }
-
+    
     if (filters.criterioAggiudicazione !== 'all') {
       queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
-    }  
+    }
     
-    // Navighiamo alla stessa pagina ma con i nuovi parametri di query
+    // Aggiungiamo i filtri per regione e città
+    if (filters.regione !== 'all' && filters.regione !== '') {
+      queryParams.append('regione', filters.regione);
+    }
+    
+    if (filters.citta !== 'all' && filters.citta !== '') {
+      queryParams.append('citta', filters.citta);
+    }
+    
     router.push(`${pathname}?${queryParams.toString()}`);
   }
 
@@ -280,6 +324,15 @@ export function ClientDashboard({
       queryParams.append('criterioAggiudicazione', tempFilters.criterioAggiudicazione);
     }
     
+    // Aggiungiamo i filtri per regione e città
+    if (tempFilters.regione !== 'all' && tempFilters.regione !== '') {
+      queryParams.append('regione', tempFilters.regione);
+    }
+    
+    if (tempFilters.citta !== 'all' && tempFilters.citta !== '') {
+      queryParams.append('citta', tempFilters.citta);
+    }
+    
     if (searchQuery.trim()) {
       queryParams.append('searchQuery', searchQuery.trim());
     }
@@ -300,7 +353,9 @@ export function ClientDashboard({
       endDate: "",
       minValue: "",
       maxValue: "",
-      criteriAggiudicazione: "all",
+      criterioAggiudicazione: "all",
+      regione: "",  // Aggiungi reset per regione
+      citta: ""      // Aggiungi reset per città
     }
     setFilters(resetState)
     setTempFilters(resetState)
@@ -322,7 +377,6 @@ export function ClientDashboard({
   const totalPages = Math.ceil(totalItems / pageSize)
   
   // Function to change page (move this before the return statement)
-  // Function to change page
   const changePage = (page: number) => {
   // Costruiamo i parametri di query
   const queryParams = new URLSearchParams();
@@ -550,6 +604,49 @@ export function ClientDashboard({
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <label className="flex items-center text-sm font-medium">
+                  <MapPin size={16} className="mr-2" />
+                  Regione
+                </label>
+                <Select value={tempFilters.regione} onValueChange={(value) => updateTempFilter("regione", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutte</SelectItem>
+                    {regioni.map((item) => (
+                      <SelectItem key={item.regione} value={item.regione}>
+                        {item.regione}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+                            <div className="space-y-2">
+                <label className="flex items-center text-sm font-medium">
+                  <Building size={16} className="mr-2" />
+                  Città
+                </label>
+                <Select 
+                  value={tempFilters.citta} 
+                  onValueChange={(value) => updateTempFilter("citta", value)}
+                  disabled={tempFilters.regione === "all" || cittaDisponibili.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutte</SelectItem>
+                    {cittaDisponibili.map((item) => (
+                      <SelectItem key={item.citta} value={item.citta}>
+                        {item.citta}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
             </div>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
@@ -590,6 +687,17 @@ export function ClientDashboard({
             <Badge variant="outline" className="mr-2">
               Criterio: {criteriAggiudicazione.find((c) => c.id === filters.criterioAggiudicazione)?.descrizione || filters.criterioAggiudicazione}
             </Badge>
+          )}
+                    {filters.regione !== "all" && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+              Regione: {filters.regione}
+            </span>
+          )}
+          
+          {filters.citta !== "all" && (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+              Città: {filters.citta}
+            </span>
           )}
           <button
             onClick={resetFilters}

@@ -73,6 +73,8 @@ export async function getTenders(filters: {
   minValue?: number;
   maxValue?: number;
   criterioAggiudicazione?: string; 
+  regione?: string;  // Nuovo campo
+  citta?: string;    // Nuovo campo
   page?: number;
   pageSize?: number;
 } = {}): Promise<{ tenders: Tender[], total: number }> {
@@ -86,7 +88,9 @@ export async function getTenders(filters: {
     endDate,
     minValue,
     maxValue,
-    criterioAggiudicazione, 
+    criterioAggiudicazione,
+    regione,     // Nuovo campo
+    citta,       // Nuovo campo
     page = 1,
     pageSize = 10
   } = filters;
@@ -212,6 +216,39 @@ export async function getTenders(filters: {
 
     if (maxValue !== undefined) {
       dataQuery = dataQuery.lte("importo", maxValue);
+    }
+    
+    // Filtri per regione e città
+    if (regione) {
+      // Prima cerchiamo gli enti appaltanti nella regione specificata
+      const { data: entiRegione, error: entiRegioneError } = await supabase
+        .from("ente_appaltante")
+        .select("id")
+        .eq("regione", regione);
+      
+      if (!entiRegioneError && entiRegione && entiRegione.length > 0) {
+        const entiIds = entiRegione.map(ente => ente.id);
+        dataQuery = dataQuery.in("ente_appaltante_id", entiIds);
+      } else {
+        // Se non ci sono enti nella regione, restituiamo un array vuoto
+        return { tenders: [], total: 0 };
+      }
+    }
+    
+    if (citta) {
+      // Prima cerchiamo gli enti appaltanti nella città specificata
+      const { data: entiCitta, error: entiCittaError } = await supabase
+        .from("ente_appaltante")
+        .select("id")
+        .eq("citta", citta);
+      
+      if (!entiCittaError && entiCitta && entiCitta.length > 0) {
+        const entiIds = entiCitta.map(ente => ente.id);
+        dataQuery = dataQuery.in("ente_appaltante_id", entiIds);
+      } else {
+        // Se non ci sono enti nella città, restituiamo un array vuoto
+        return { tenders: [], total: 0 };
+      }
     }
     
     // Applichiamo il filtro categoriaOpera se presente
@@ -787,6 +824,76 @@ export async function getCriterioAggiudicazione(): Promise<{ id: string; descriz
     )
   } catch (error) {
     console.error("Errore generale nel recupero dei criteri di aggiudicazione:", error)
+    throw error;
+  }
+}
+
+
+export async function getRegioni(): Promise<{ regione: string }[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Verifica se la tabella esiste
+    const exists = await tableExists(supabase, "ente_appaltante")
+    if (!exists) {
+      throw new Error("La tabella 'ente_appaltante' non esiste.");
+    }
+
+    const { data, error } = await supabase
+      .from("ente_appaltante")
+      .select("regione")
+      .not("regione", "is", null)
+      .order("regione")
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle regioni: ${error.message}`);
+    }
+
+    // Deduplicare le regioni e filtrare le stringhe vuote
+    const regioni = [...new Set(data?.map(item => item.regione))].filter(regione => regione.trim() !== "");
+    
+    return regioni.map(regione => ({ regione })) || [];
+  } catch (error) {
+    console.error("Errore generale nel recupero delle regioni:", error)
+    throw error;
+  }
+}
+
+export async function getCittaByRegione(regione: string): Promise<{ citta: string }[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Verifica se la tabella esiste
+    const exists = await tableExists(supabase, "ente_appaltante")
+    if (!exists) {
+      throw new Error("La tabella 'ente_appaltante' non esiste.");
+    }
+
+    const { data, error } = await supabase
+      .from("ente_appaltante")
+      .select("citta")
+      .eq("regione", regione)
+      .not("citta", "is", null)
+      .order("citta")
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle città: ${error.message}`);
+    }
+
+    // Deduplicare le città e filtrare le stringhe vuote
+    const citta = [...new Set(data?.map(item => item.citta))].filter(citta => citta.trim() !== "");
+    
+    return citta.map(citta => ({ citta })) || [];
+  } catch (error) {
+    console.error("Errore generale nel recupero delle città:", error)
     throw error;
   }
 }

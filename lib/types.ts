@@ -49,6 +49,8 @@ export interface TenderFilters {
   minValue?: number;
   maxValue?: number;
   criterioAggiudicazione?: string; 
+  regione?: string;  // Nuovo campo
+  citta?: string;    // Nuovo campo
   page?: number;
   pageSize?: number;
 }
