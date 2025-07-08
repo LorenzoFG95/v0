@@ -167,6 +167,7 @@ export function TenderCard({ tender }: TenderCardProps) {
             <div className="flex justify-end flex-wrap gap-1">
               {tender.categorieOpera
                 .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
+                .slice(0, 4) // Limita a 4 categorie
                 .map((categoria, index) => (
                 <HoverCard key={index}>
                   <HoverCardTrigger asChild>
@@ -188,6 +189,41 @@ export function TenderCard({ tender }: TenderCardProps) {
                   </HoverCardContent>
                 </HoverCard>
               ))}
+              
+              {/* Badge +x per le categorie aggiuntive */}
+              {tender.categorieOpera
+                .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
+                .length > 4 && (
+                <HoverCard>
+                  <HoverCardTrigger asChild>
+                    <Badge variant="outline" className="cursor-help">
+                      +{tender.categorieOpera
+                        .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
+                        .length - 4}
+                    </Badge>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-semibold">Altre categorie</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {tender.categorieOpera
+                          .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
+                          .slice(4)
+                          .map((categoria, index) => (
+                            <Badge 
+                              key={index}
+                              variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                              className="mr-1 mb-1"
+                            >
+                              {categoria.id_categoria}: {categoria.descrizione_tipo_categoria || 
+                                (categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile")}
+                            </Badge>
+                          ))}
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              )}
               
               {/* Mostra CPV per categorie fs o fb */}
               {tender.cpv && tender.cpv !== "CPV non specificato" && tender.categorieOpera.some(cat => 
