@@ -484,39 +484,7 @@ export function ClientDashboard({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="flex items-center text-sm font-medium">
-                  <Activity size={16} className="mr-2" />
-                  Categoria Opera
-                </label>
-                <Select value={tempFilters.categoriaOpera} onValueChange={(value) => updateTempFilter("categoriaOpera", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tutte" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tutte</SelectItem>
-                    {categorieOpera.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id_categoria}>
-                        {cat.descrizione}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center space-x-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="soloPrevalente"
-                    checked={tempFilters.soloPrevalente}
-                    onChange={(e) => updateTempFilter("soloPrevalente", e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <label htmlFor="soloPrevalente" className="text-sm text-gray-700">
-                    Solo come prevalente
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-2">
+                            <div className="space-y-2">
                 <label className="flex items-center text-sm font-medium">
                   <Activity size={16} className="mr-2" />
                   Settore
@@ -535,7 +503,41 @@ export function ClientDashboard({
                   </SelectContent>
                 </Select>
               </div>
-
+              
+              {/* Mostra Categoria Opera solo quando il settore è Lavori (id=1) */}
+              {(tempFilters.categoria === "1") && (
+                <div className="space-y-2">
+                  <label className="flex items-center text-sm font-medium">
+                    <Activity size={16} className="mr-2" />
+                    Categoria Opera
+                  </label>
+                  <Select value={tempFilters.categoriaOpera} onValueChange={(value) => updateTempFilter("categoriaOpera", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tutte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tutte</SelectItem>
+                      {categorieOpera.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id_categoria}>
+                          {cat.descrizione}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="soloPrevalente"
+                      checked={tempFilters.soloPrevalente}
+                      onChange={(e) => updateTempFilter("soloPrevalente", e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="soloPrevalente" className="text-sm text-gray-700">
+                      Solo come prevalente
+                    </label>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="flex items-center text-sm font-medium">
                   <Activity size={16} className="mr-2" />
