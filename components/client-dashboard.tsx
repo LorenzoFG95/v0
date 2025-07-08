@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { TenderList } from "@/components/tender-list"
 import type { Tender } from "@/lib/types"
@@ -54,7 +55,7 @@ export function ClientDashboard({
   // Filter State
   // Filter State
   const [filters, setFilters] = useState({
-    categoriaOpera: "all",
+    categoriaOpera: [] as string[], // Modificato da "all" a [] (array vuoto)
     soloPrevalente: false,
     categoria: "all",
     stato: "all",
@@ -118,7 +119,7 @@ export function ClientDashboard({
     }
 
     // Apply categoriaOpera filter
-    if (filters.categoriaOpera !== "all") {
+    if (filters.categoriaOpera.length > 0) {
       result = result.filter((tender) => {
         if (!tender.categorieOpera || tender.categorieOpera.length === 0) {
           return false
@@ -127,11 +128,11 @@ export function ClientDashboard({
         // Se il flag soloPrevalente è attivo, filtra solo le categorie prevalenti
         if (filters.soloPrevalente) {
           return tender.categorieOpera.some(
-            (cat) => cat.id_categoria === filters.categoriaOpera && cat.cod_tipo_categoria === "P"
+            (cat) => filters.categoriaOpera.includes(cat.id_categoria) && cat.cod_tipo_categoria === "P"
           )
         } else {
           // Altrimenti filtra tutte le categorie (prevalenti e scorporabili)
-          return tender.categorieOpera.some((cat) => cat.id_categoria === filters.categoriaOpera)
+          return tender.categorieOpera.some((cat) => filters.categoriaOpera.includes(cat.id_categoria))
         }
       })
     }
@@ -198,7 +199,7 @@ export function ClientDashboard({
   const hasActiveFilters = useMemo(() => {
     return (
       searchQuery.trim() !== "" ||
-      filters.categoriaOpera !== "all" ||
+      filters.categoriaOpera.length > 0 || // Modificato per verificare se l'array ha elementi
       filters.soloPrevalente !== false ||
       filters.categoria !== "all" ||
       filters.stato !== "all" ||
@@ -209,7 +210,7 @@ export function ClientDashboard({
       filters.criterioAggiudicazione !== "all" ||
       filters.regione !== "" ||
       filters.citta !== "" ||
-      filters.tipoProcedura !== "all" // Aggiungi controllo per tipo procedura
+      filters.tipoProcedura !== "all"
     )
   }, [searchQuery, filters])
 
@@ -227,8 +228,11 @@ export function ClientDashboard({
     }
     
     // Aggiungiamo anche gli altri filtri attivi
-    if (filters.categoriaOpera !== 'all') {
-      queryParams.append('categoriaOpera', filters.categoriaOpera);
+    if (filters.categoriaOpera.length > 0) {
+      // Aggiungiamo ogni categoria come parametro separato
+      filters.categoriaOpera.forEach(cat => {
+        queryParams.append('categoriaOpera', cat);
+      });
     }
     
     if (filters.soloPrevalente) {
@@ -292,10 +296,12 @@ export function ClientDashboard({
     const queryParams = new URLSearchParams();
     queryParams.append('page', '1'); // Torniamo alla prima pagina
     
-    // Aggiungiamo solo i filtri che hanno un valore
-    if (tempFilters.categoriaOpera !== 'all') {
-      queryParams.append('categoriaOpera', tempFilters.categoriaOpera);
-    }
+if (tempFilters.categoriaOpera.length > 0) {
+  // Aggiungiamo ogni categoria come parametro separato
+  tempFilters.categoriaOpera.forEach(cat => {
+    queryParams.append('categoriaOpera', cat);
+  });
+}
     
     if (tempFilters.soloPrevalente) {
       queryParams.append('soloPrevalente', 'true');
@@ -354,7 +360,7 @@ export function ClientDashboard({
   // Reset all filters
   const resetFilters = () => {
       const resetState = {
-        categoriaOpera: "all",
+        categoriaOpera: [] as string[], // Modificato da "all" a [] (array vuoto)
         soloPrevalente: false,
         categoria: "all",
         stato: "all",
@@ -383,6 +389,27 @@ export function ClientDashboard({
     setShowFilters(!showFilters)
   }
 
+  // Funzione per gestire la selezione/deselezione delle categorie opera
+  const toggleCategoriaOpera = (categoriaId: string) => {
+    setTempFilters(prev => {
+      // Se la categoria è già selezionata, la rimuoviamo
+      if (prev.categoriaOpera.includes(categoriaId)) {
+        return {
+          ...prev,
+          categoriaOpera: prev.categoriaOpera.filter(id => id !== categoriaId)
+        };
+      } 
+      // Altrimenti la aggiungiamo
+      else {
+        return {
+          ...prev,
+          categoriaOpera: [...prev.categoriaOpera, categoriaId]
+        };
+      }
+    });
+  };
+
+
   // Calculate total pages (move this before the return statement)
   const totalPages = Math.ceil(totalItems / pageSize)
   
@@ -397,8 +424,11 @@ export function ClientDashboard({
     queryParams.append('searchQuery', searchQuery.trim());
   }
   
-  if (filters.categoriaOpera !== 'all') {
-    queryParams.append('categoriaOpera', filters.categoriaOpera);
+  if (tempFilters.categoriaOpera.length > 0) {
+    // Aggiungiamo ogni categoria come parametro separato
+    tempFilters.categoriaOpera.forEach(cat => {
+      queryParams.append('categoriaOpera', cat);
+    });
   }
   
   if (filters.soloPrevalente) {
@@ -430,6 +460,13 @@ export function ClientDashboard({
   }
   
   // In handleSearch, applyFilters e changePage
+  if (filters.categoriaOpera.length > 0) {
+    // Aggiungiamo ogni categoria come parametro separato
+    filters.categoriaOpera.forEach(cat => {
+      queryParams.append('categoriaOpera', cat);
+    });
+  }
+  
   if (filters.criterioAggiudicazione !== 'all') {
     queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
   }
@@ -509,21 +546,25 @@ export function ClientDashboard({
                 <div className="space-y-2">
                   <label className="flex items-center text-sm font-medium">
                     <Activity size={16} className="mr-2" />
-                    Categoria Opera
+                    Categorie Opera
                   </label>
-                  <Select value={tempFilters.categoriaOpera} onValueChange={(value) => updateTempFilter("categoriaOpera", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tutte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tutte</SelectItem>
-                      {categorieOpera.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id_categoria}>
+                  <div className="border rounded-md p-3 max-h-60 overflow-y-auto space-y-2">
+                    {categorieOpera.map((cat) => (
+                      <div key={cat.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`cat-${cat.id_categoria}`}
+                          checked={tempFilters.categoriaOpera.includes(cat.id_categoria)}
+                          onCheckedChange={() => toggleCategoriaOpera(cat.id_categoria)}
+                        />
+                        <label 
+                          htmlFor={`cat-${cat.id_categoria}`}
+                          className="text-sm cursor-pointer"
+                        >
                           {cat.descrizione}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                   <div className="flex items-center space-x-2 pt-2">
                     <input
                       type="checkbox"
@@ -708,9 +749,12 @@ export function ClientDashboard({
               Ricerca: "{searchQuery}"
             </span>
           )}
-          {filters.categoriaOpera !== "all" && (
+          {filters.categoriaOpera.length > 0 && (
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-              Categoria Opera: {categorieOpera.find((c) => c.id === filters.categoriaOpera)?.descrizione || filters.categoriaOpera}
+              Categorie Opera: {filters.categoriaOpera.map(catId => {
+                const cat = categorieOpera.find(c => c.id_categoria === catId);
+                return cat ? cat.descrizione : catId;
+              }).join(", ")}
               {filters.soloPrevalente && " (solo prevalente)"}
             </span>
           )}

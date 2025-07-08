@@ -22,7 +22,7 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
     page: params.page ? parseInt(params.page as string) : 1,
     pageSize: 10,
     searchQuery: params.searchQuery as string,
-    categoriaOpera: params.categoriaOpera as string,
+    categoriaOpera: Array.isArray(params.categoriaOpera) ? params.categoriaOpera : params.categoriaOpera ? [params.categoriaOpera as string] : [],
     soloPrevalente: params.soloPrevalente === 'true',
     categoria: params.categoria as string,
     stato: params.stato as string,

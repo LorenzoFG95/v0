@@ -62,9 +62,10 @@ async function tableExists(supabase: any, tableName: string): Promise<boolean> {
   }
 }
 
+// Modifica la definizione del parametro
 export async function getTenders(filters: {
   searchQuery?: string;
-  categoriaOpera?: string;
+  categoriaOpera?: string[]; // Modificato da string a string[]
   soloPrevalente?: boolean;
   categoria?: string;
   stato?: string;
@@ -113,27 +114,30 @@ export async function getTenders(filters: {
     // Se abbiamo un filtro per categoriaOpera, otteniamo prima gli ID delle gare che corrispondono alla categoria
     let gareIdsWithCategoriaOpera: number[] | null = null;
     
-    if (categoriaOpera) {
-            // Prima otteniamo l'ID numerico della categoria opera dal suo codice
-      const { data: categoriaOperaData, error: categoriaOperaLookupError } = await supabase
+    if (categoriaOpera && categoriaOpera.length > 0) {
+      // Otteniamo gli ID numerici delle categorie opera dai loro codici
+      const { data: categorieOperaData, error: categorieOperaLookupError } = await supabase
         .from("categoria_opera")
-        .select("id")
-        .eq("id_categoria", categoriaOpera)
-        .single();
+        .select("id, id_categoria")
+        .in("id_categoria", categoriaOpera);
         
-      if (categoriaOperaLookupError || !categoriaOperaData) {
-        console.error("Errore nel recupero dell'ID della categoria opera:", categoriaOperaLookupError);
+      if (categorieOperaLookupError || !categorieOperaData || categorieOperaData.length === 0) {
+        console.error("Errore nel recupero degli ID delle categorie opera:", categorieOperaLookupError);
         return { tenders: [], total: 0 };
       }
-      // Costruiamo una query per ottenere i lotti con la categoria opera specificata
+      
+      // Estraiamo gli ID numerici delle categorie
+      const categorieOperaIds = categorieOperaData.map(cat => cat.id);
+      
+      // Costruiamo una query per ottenere i lotti con le categorie opera specificate
       let categoriaOperaQuery = supabase
         .from("lotto_categoria_opera")
         .select("lotto_id, categoria_opera_id, ruolo")
-        .eq("categoria_opera_id", categoriaOperaData.id);
+        .in("categoria_opera_id", categorieOperaIds);
       
       // Se soloPrevalente è true, filtriamo solo per categorie prevalenti
       if (soloPrevalente) {
-        categoriaOperaQuery = categoriaOperaQuery.eq("ruolo", "P");  // Cambiato da cod_tipo_categoria a ruolo
+        categoriaOperaQuery = categoriaOperaQuery.eq("ruolo", "P");
       }
       
       const { data: lottiWithCategoria, error: categoriaError } = await categoriaOperaQuery;

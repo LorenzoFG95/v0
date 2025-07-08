@@ -40,7 +40,7 @@ export interface Tender {
 
 export interface TenderFilters {
   searchQuery?: string;
-  categoriaOpera?: string;
+  categoriaOpera?: string[]; // Modificato da string a string[]
   soloPrevalente?: boolean;
   categoria?: string;
   stato?: string;
@@ -51,7 +51,7 @@ export interface TenderFilters {
   criterioAggiudicazione?: string; 
   regione?: string;
   citta?: string;
-  tipoProcedura?: string;  // Nuovo campo
+  tipoProcedura?: string;
   page?: number;
   pageSize?: number;
 }
