@@ -20,12 +20,14 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 
+// Aggiorna l'interfaccia ClientDashboardProps
 interface ClientDashboardProps {
   initialTenders: Tender[]
   categorieOpera: { id: string; descrizione: string; id_categoria: string }[]
   categorie: { id: string; descrizione: string }[]
   criteriAggiudicazione: { id: string; descrizione: string }[]
-  regioni: { regione: string }[]  
+  regioni: { regione: string }[]
+  tipiProcedura: { id: string; descrizione: string }[]  // Nuovo prop
   currentPage: number
   totalItems: number
   pageSize: number
@@ -36,7 +38,8 @@ export function ClientDashboard({
   categorieOpera, 
   categorie,
   criteriAggiudicazione,
-  regioni,  
+  regioni,
+  tipiProcedura,  // Nuovo prop
   currentPage,
   totalItems,
   pageSize
@@ -47,7 +50,7 @@ export function ClientDashboard({
   // UI State
   const [showFilters, setShowFilters] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-
+  
   // Filter State
   // Filter State
   const [filters, setFilters] = useState({
@@ -62,6 +65,7 @@ export function ClientDashboard({
     criterioAggiudicazione: "all",
     regione: "all",  
     citta: "all",
+    tipoProcedura: "all", // Nuovo campo per il filtro tipo procedura
   });
   
   // State per le città disponibili in base alla regione selezionata
@@ -204,7 +208,8 @@ export function ClientDashboard({
       filters.maxValue !== "" ||
       filters.criterioAggiudicazione !== "all" ||
       filters.regione !== "" ||
-      filters.citta !== ""
+      filters.citta !== "" ||
+      filters.tipoProcedura !== "all" // Aggiungi controllo per tipo procedura
     )
   }, [searchQuery, filters])
 
@@ -338,32 +343,37 @@ export function ClientDashboard({
     }
     
     // Navighiamo alla stessa pagina ma con i nuovi parametri di query
+    // Aggiungiamo il filtro per tipo procedura
+    if (tempFilters.tipoProcedura !== 'all') {
+      queryParams.append('tipoProcedura', tempFilters.tipoProcedura);
+    }
+    
     router.push(`${pathname}?${queryParams.toString()}`);
   }
 
   // Reset all filters
-  // Reset all filters
   const resetFilters = () => {
-    const resetState = {
-      categoriaOpera: "all",
-      soloPrevalente: false,
-      categoria: "all",
-      stato: "all",
-      startDate: "",
-      endDate: "",
-      minValue: "",
-      maxValue: "",
-      criterioAggiudicazione: "all",
-      regione: "",  // Aggiungi reset per regione
-      citta: ""      // Aggiungi reset per città
+      const resetState = {
+        categoriaOpera: "all",
+        soloPrevalente: false,
+        categoria: "all",
+        stato: "all",
+        startDate: "",
+        endDate: "",
+        minValue: "",
+        maxValue: "",
+        criterioAggiudicazione: "all",
+        regione: "",  // Aggiungi reset per regione
+        citta: "",     // Aggiungi reset per città
+        tipoProcedura: "all" // Aggiungi reset per tipo procedura
+      }
+      setFilters(resetState)
+      setTempFilters(resetState)
+      setSearchQuery("")
+      
+      // Navighiamo alla pagina senza filtri
+      router.push(pathname);
     }
-    setFilters(resetState)
-    setTempFilters(resetState)
-    setSearchQuery("")
-    
-    // Navighiamo alla pagina senza filtri
-    router.push(pathname);
-  }
 
   // When opening filters, sync temp filters with current filters
   const toggleFilters = () => {
@@ -546,6 +556,26 @@ export function ClientDashboard({
 
               <div className="space-y-2">
                 <label className="flex items-center text-sm font-medium">
+                  <Activity size={16} className="mr-2" />
+                  Tipo di Procedura
+                </label>
+                <Select value={tempFilters.tipoProcedura} onValueChange={(value) => updateTempFilter("tipoProcedura", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tutti" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tutti</SelectItem>
+                    {tipiProcedura.map((tipo) => (
+                      <SelectItem key={tipo.id} value={tipo.id}>
+                        {tipo.descrizione}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center text-sm font-medium">
                   <Calendar size={16} className="mr-2" />
                   Data Da
                 </label>
@@ -697,7 +727,7 @@ export function ClientDashboard({
               Criterio: {criteriAggiudicazione.find((c) => c.id === filters.criterioAggiudicazione)?.descrizione || filters.criterioAggiudicazione}
             </Badge>
           )}
-                    {filters.regione !== "all" && (
+          {filters.regione !== "all" && (
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
               Regione: {filters.regione}
             </span>
@@ -707,6 +737,11 @@ export function ClientDashboard({
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
               Città: {filters.citta}
             </span>
+          )}
+          {filters.tipoProcedura !== "all" && (
+            <Badge variant="outline" className="mr-2">
+              Tipo Procedura: {tipiProcedura.find((t) => t.id === filters.tipoProcedura)?.descrizione || filters.tipoProcedura}
+            </Badge>
           )}
           <button
             onClick={resetFilters}

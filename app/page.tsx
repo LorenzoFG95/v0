@@ -1,5 +1,5 @@
 import { Header } from "@/components/header"
-import { getTenders, getCategorieNatura, getCategorieOpera, getCriterioAggiudicazione, getRegioni } from "@/lib/data"
+import { getTenders, getCategorieNatura, getCategorieOpera, getCriterioAggiudicazione, getRegioni, getTipiProcedura } from "@/lib/data"
 import { DatabaseSetupGuide } from "@/components/database-setup-guide"
 import { ClientDashboard } from "@/components/client-dashboard"
 import { ConnectionStatus } from "@/components/connection-status";
@@ -33,6 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
     criterioAggiudicazione: params.criterioAggiudicazione as string,
     regione: params.regione as string,
     citta: params.citta as string,
+    tipoProcedura: params.tipoProcedura as string,
   };
   
   const currentPage = filters.page || 1
@@ -54,12 +55,13 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
   }
 
   // Get all data server-side
-  const [{ tenders, total }, categorie, categorieOpera, criteriAggiudicazione, regioni] = await Promise.all([
+  const [{ tenders, total }, categorie, categorieOpera, criteriAggiudicazione, regioni, tipiProcedura] = await Promise.all([
     getTenders(filters), // Passa tutti i filtri
     getCategorieNatura(),
     getCategorieOpera(),
     getCriterioAggiudicazione(), // Aggiunto
     getRegioni(),
+    getTipiProcedura()
   ])
 
   return (
@@ -77,6 +79,7 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
           categorie={categorie} 
           criteriAggiudicazione={criteriAggiudicazione} // Aggiunto
           regioni={regioni}  // Nuovo campo
+          tipiProcedura={tipiProcedura} // Aggiunto il prop mancante
           currentPage={currentPage}
           totalItems={total}
           pageSize={10}

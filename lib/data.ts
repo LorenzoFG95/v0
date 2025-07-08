@@ -75,6 +75,7 @@ export async function getTenders(filters: {
   criterioAggiudicazione?: string; 
   regione?: string;  // Nuovo campo
   citta?: string;    // Nuovo campo
+  tipoProcedura?: string; // Nuovo campo
   page?: number;
   pageSize?: number;
 } = {}): Promise<{ tenders: Tender[], total: number }> {
@@ -91,6 +92,7 @@ export async function getTenders(filters: {
     criterioAggiudicazione,
     regione,     // Nuovo campo
     citta,       // Nuovo campo
+    tipoProcedura, // Nuovo campo
     page = 1,
     pageSize = 10
   } = filters;
@@ -208,6 +210,10 @@ export async function getTenders(filters: {
 
     if (criterioAggiudicazione) {
       dataQuery = dataQuery.eq("criterio_aggiudicazione_id", criterioAggiudicazione);
+    }
+    
+    if (tipoProcedura) {
+      dataQuery = dataQuery.eq("tipo_procedura_id", tipoProcedura);
     }
 
     if (minValue !== undefined) {
@@ -895,5 +901,36 @@ export async function getCittaByRegione(regione: string): Promise<{ citta: strin
   } catch (error) {
     console.error("Errore generale nel recupero delle città:", error)
     throw error;
+  }
+}
+
+export async function getTipiProcedura(): Promise<{ id: string; descrizione: string }[]> {
+  // Verifica che le variabili di ambiente siano configurate
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Verifica se la tabella esiste
+    const exists = await tableExists(supabase, "tipo_procedura")
+    if (!exists) {
+      throw new Error("La tabella 'tipo_procedura' non esiste.");
+    }
+
+    const { data, error } = await supabase
+      .from("tipo_procedura")
+      .select("id, descrizione")
+      .order("descrizione")
+
+    if (error) {
+      throw new Error(`Errore nel recupero dei tipi di procedura: ${error.message}`);
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Errore nel recupero dei tipi di procedura:", error);
+    return [];
   }
 }
