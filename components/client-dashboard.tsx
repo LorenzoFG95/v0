@@ -421,7 +421,16 @@ export function ClientDashboard({
   
   // In handleSearch, applyFilters e changePage
   if (filters.criterioAggiudicazione !== 'all') {
-  queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
+    queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
+  }
+  
+  // Aggiungiamo i filtri per regione e città
+  if (filters.regione !== 'all' && filters.regione !== '') {
+    queryParams.append('regione', filters.regione);
+  }
+  
+  if (filters.citta !== 'all' && filters.citta !== '') {
+    queryParams.append('citta', filters.citta);
   }
   
   router.push(`${pathname}?${queryParams.toString()}`);
