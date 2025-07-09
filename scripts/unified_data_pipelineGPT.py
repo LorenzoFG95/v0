@@ -301,50 +301,25 @@ def get_lookup_maps() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int]]:
     print(f"✔  Recuperate {len(natura_map)} nature, {len(criterio_map)} criteri, {len(stato_map)} stati e {len(stato_map)} stati")
     return natura_map, criterio_map, stato_map, tipo_procedura_map
 
+# Modifica alla funzione process_categorie_opera
 def process_categorie_opera(bandi: List[Dict]) -> Dict[str, int]:
     """
-    Deduplica le categorie (ID_CATEGORIA), esegue upsert su `categoria_opera`
-    e restituisce una mappa code → id (PK autoincrement di Supabase).
+    Recupera le categorie opera dal database e restituisce una mappa id_categoria → id (PK di Supabase).
+    Non esegue più l'upsert delle categorie, ma usa solo quelle già presenti nel database.
     """
-    print("Elaborazione categorie opera…")
-    seen: Dict[str, str] = {}           # code → descrizione
-    for item in bandi:
-        cats = item.get("cig_details", {}).get("categorie_opera", [])
-        if not cats:
-            continue
-        if isinstance(cats, str):       # alcune API restituiscono stringa JSON
-            try:
-                if cats.strip().upper() == "N/A":
-                    continue
-                cats = json.loads(cats)
-            except json.JSONDecodeError:
-                continue
-        for c in cats:
-            code = (c.get("ID_CATEGORIA")
-                    or c.get("id_categoria")
-                    or c.get("idCategoria"))
-            descr = (c.get("DESCRIZIONE")
-                     or c.get("descrizione")
-                     or "")
-            if code:
-                seen[code] = descr
-
+    print("Recupero categorie opera dal database…")
     cat_map: Dict[str, int] = {}
-    for code, descr in seen.items():
-        payload = {"id_categoria": code, "descrizione": descr}
-        try:
-            res = (
-                supabase
-                .table("categoria_opera")
-                .upsert(payload, on_conflict="id_categoria",
-                        returning="representation")
-                .execute()
-            )
-            cat_map[code] = res.data[0]["id"]
-        except Exception as exc:
-            print(f"  ↳ errore categoria {code}: {exc}")
-
-    print(f"✔  {len(cat_map)} categorie opera inserite/aggiornate")
+    
+    try:
+        # Recupera tutte le categorie opera dal database
+        res = supabase.table("categoria_opera").select("id,id_categoria").execute()
+        for item in res.data:
+            cat_map[item["id_categoria"]] = item["id"]
+        
+        print(f"  ↳ Recuperate {len(cat_map)} categorie opera dal database")
+    except Exception as exc:
+        print(f"  ↳ errore recupero categorie opera: {exc}")
+    
     return cat_map
 
 
@@ -765,11 +740,17 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
 
         for c in cats:
             code      = (c.get("ID_CATEGORIA") or c.get("id_categoria"))
-            ruolo_raw = c.get("COD_TIPO_CATEGORIA") or c.get("cod_tipo_categoria")
-            ruolo     = "P" if (ruolo_raw or "").upper() in {"P", "1"} else "S"
+            # Verifica se la categoria esiste nella mappa
             cat_id    = cat_map.get(code)
             if not cat_id:
+                # Salta questa categoria se non esiste nella mappa
+                print(f"      ↳ categoria {code} non trovata nel database, saltata")
                 continue
+                
+            # Determina il ruolo (prevalente o scorporabile)
+            ruolo_raw = c.get("COD_TIPO_CATEGORIA") or c.get("cod_tipo_categoria")
+            ruolo     = "P" if (ruolo_raw or "").upper() == "P" else "S"
+            
             link_payload = {
                 "lotto_id": lotto_id,
                 "categoria_opera_id": cat_id,

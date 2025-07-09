@@ -1,0 +1,262 @@
+[
+  {
+    "id": "1",
+    "descrizione": "OG 1 Edifici civili e industriali",
+    "id_categoria": "OG 1"
+  },
+  {
+    "id": "2",
+    "descrizione": "OG 2 Restauro e manutenzione dei beni immobili sottoposti a tutela",
+    "id_categoria": "OG 2"
+  },
+  {
+    "id": "3",
+    "descrizione": "OG 3 Strade, autostrade, ponti, viadotti, ferrovie, metropolitane",
+    "id_categoria": "OG 3"
+  },
+  {
+    "id": "4",
+    "descrizione": "OG 4 Opere d'arte nel sottosuolo",
+    "id_categoria": "OG 4"
+  },
+  {
+    "id": "5",
+    "descrizione": "OG 5 Dighe",
+    "id_categoria": "OG 5"
+  },
+  {
+    "id": "6",
+    "descrizione": "OG 6 Acquedotti, gasdotti, oleodotti, opere di irrigazione e di evacuazione",
+    "id_categoria": "OG 6"
+  },
+  {
+    "id": "7",
+    "descrizione": "OG 7 Opere marittime e lavori di dragaggio",
+    "id_categoria": "OG 7"
+  },
+  {
+    "id": "8",
+    "descrizione": "OG 8 Opere fluviali, di difesa, di sistemazione idraulica e di bonifica",
+    "id_categoria": "OG 8"
+  },
+  {
+    "id": "9",
+    "descrizione": "OG 9 Impianti per la produzione di energia elettrica",
+    "id_categoria": "OG 9"
+  },
+  {
+    "id": "10",
+    "descrizione": "OG 10 Impianti per la trasformazione alta/media tensione e per la distribuzione di energia elettrica in corrente alternata e continua ed impianti di pubblica illuminazione",
+    "id_categoria": "OG 10"
+  },
+  {
+    "id": "11",
+    "descrizione": "OG 11 Impianti tecnologici",
+    "id_categoria": "OG 11"
+  },
+  {
+    "id": "12",
+    "descrizione": "OG 12 Opere ed impianti di bonifica e protezione ambientale",
+    "id_categoria": "OG 12"
+  },
+  {
+    "id": "13",
+    "descrizione": "OG 13 Opere di ingegneria naturalistica",
+    "id_categoria": "OG 13"
+  },
+  {
+    "id": "14",
+    "descrizione": "OS 1 Lavori in terra",
+    "id_categoria": "OS 1"
+  },
+  {
+    "id": "15",
+    "descrizione": "OS 2-A Superfici decorate di beni immobili del patrimonio culturale e beni culturali mobili di interesse storico, artistico, archeologico ed etnoantropologico",
+    "id_categoria": "OS 2-A"
+  },
+  {
+    "id": "16",
+    "descrizione": "OS 2-B Beni culturali mobili di interesse archivistico e librario",
+    "id_categoria": "OS 2-B"
+  },
+  {
+    "id": "17",
+    "descrizione": "OS 3 Impianti idrico-sanitario, cucine, lavanderie",
+    "id_categoria": "OS 3"
+  },
+  {
+    "id": "18",
+    "descrizione": "OS 4 Impianti elettromeccanici trasportatori",
+    "id_categoria": "OS 4"
+  },
+  {
+    "id": "19",
+    "descrizione": "OS 5 Impianti pneumatici e antintrusione",
+    "id_categoria": "OS 5"
+  },
+  {
+    "id": "20",
+    "descrizione": "OS 6 Finiture di opere generali in materiali lignei, plastici, metallici e vetrosi",
+    "id_categoria": "OS 6"
+  },
+  {
+    "id": "21",
+    "descrizione": "OS 7 Finiture di opere generali di natura edile e tecnica",
+    "id_categoria": "OS 7"
+  },
+  {
+    "id": "22",
+    "descrizione": "OS 8 Opere di impermeabilizzazione",
+    "id_categoria": "OS 8"
+  },
+  {
+    "id": "23",
+    "descrizione": "OS 9 Impianti per la segnaletica luminosa e la sicurezza del traffico",
+    "id_categoria": "OS 9"
+  },
+  {
+    "id": "24",
+    "descrizione": "OS 10 Segnaletica stradale non luminosa",
+    "id_categoria": "OS 10"
+  },
+  {
+    "id": "25",
+    "descrizione": "OS 11 Apparecchiature strutturali speciali",
+    "id_categoria": "OS 11"
+  },
+  {
+    "id": "26",
+    "descrizione": "OS 12-A Barriere stradali di sicurezza",
+    "id_categoria": "OS 12-A"
+  },
+  {
+    "id": "27",
+    "descrizione": "OS 12-B Barriere paramassi, fermaneve e simili",
+    "id_categoria": "OS 12-B"
+  },
+  {
+    "id": "28",
+    "descrizione": "OS 13 Strutture prefabbricate in cemento armato",
+    "id_categoria": "OS 13"
+  },
+  {
+    "id": "29",
+    "descrizione": "OS 14 Impianti di smaltimento e recupero rifiuti",
+    "id_categoria": "OS 14"
+  },
+  {
+    "id": "30",
+    "descrizione": "OS 15 Pulizia di acque marine, lacustri, fluviali",
+    "id_categoria": "OS 15"
+  },
+  {
+    "id": "31",
+    "descrizione": "OS 16 Impianti per centrali produzione energia elettrica",
+    "id_categoria": "OS 16"
+  },
+  {
+    "id": "32",
+    "descrizione": "OS 17 Linee telefoniche ed impianti di telefonia",
+    "id_categoria": "OS 17"
+  },
+  {
+    "id": "33",
+    "descrizione": "OS 18-A Componenti strutturali in acciaio",
+    "id_categoria": "OS 18-A"
+  },
+  {
+    "id": "34",
+    "descrizione": "OS 18-B Componenti per facciate continue",
+    "id_categoria": "OS 18-B"
+  },
+  {
+    "id": "35",
+    "descrizione": "OS 19 Impianti di reti di telecomunicazione e di trasmissioni e trattamento",
+    "id_categoria": "OS 19"
+  },
+  {
+    "id": "36",
+    "descrizione": "OS 20-A Rilevamenti topografici",
+    "id_categoria": "OS 20-A"
+  },
+  {
+    "id": "37",
+    "descrizione": "OS 20-B Indagini geognostiche",
+    "id_categoria": "OS 20-B"
+  },
+  {
+    "id": "38",
+    "descrizione": "OS 21 Opere strutturali speciali",
+    "id_categoria": "OS 21"
+  },
+  {
+    "id": "39",
+    "descrizione": "OS 22 Impianti di potabilizzazione e depurazione",
+    "id_categoria": "OS 22"
+  },
+  {
+    "id": "40",
+    "descrizione": "OS 23 Demolizione di opere",
+    "id_categoria": "OS 23"
+  },
+  {
+    "id": "41",
+    "descrizione": "OS 24 Verde e arredo urbano",
+    "id_categoria": "OS 24"
+  },
+  {
+    "id": "42",
+    "descrizione": "OS 25 Scavi archeologici",
+    "id_categoria": "OS 25"
+  },
+  {
+    "id": "43",
+    "descrizione": "OS 26 Pavimentazioni e sovrastrutture speciali",
+    "id_categoria": "OS 26"
+  },
+  {
+    "id": "44",
+    "descrizione": "OS 27 Impianti per la trazione elettrica",
+    "id_categoria": "OS 27"
+  },
+  {
+    "id": "45",
+    "descrizione": "OS 28 Impianti termici e di condizionamento",
+    "id_categoria": "OS 28"
+  },
+  {
+    "id": "46",
+    "descrizione": "OS 29 Armamento ferroviario",
+    "id_categoria": "OS 29"
+  },
+  {
+    "id": "47",
+    "descrizione": "OS 30 Impianti interni elettrici, telefonici, radiotelefonici e televisivi",
+    "id_categoria": "OS 30"
+  },
+  {
+    "id": "48",
+    "descrizione": "OS 31 Impianti per la mobilità sospesa",
+    "id_categoria": "OS 31"
+  },
+  {
+    "id": "49",
+    "descrizione": "OS 32 Strutture in legno",
+    "id_categoria": "OS 32"
+  },
+  {
+    "id": "50",
+    "descrizione": "OS 33 Coperture speciali",
+    "id_categoria": "OS 33"
+  },
+  {
+    "id": "51",
+    "descrizione": "OS 34 Sistemi antirumore per infrastrutture di mobilità",
+    "id_categoria": "OS 34"
+  },
+  {
+    "id": "52",
+    "descrizione": "OS 35 Interventi a basso impatto ambientale",
+    "id_categoria": "OS 35"
+  }
+]
