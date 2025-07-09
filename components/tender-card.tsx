@@ -162,7 +162,8 @@ export function TenderCard({ tender }: TenderCardProps) {
           <span className="ml-2 font-medium">{formatCurrency(tender.valore)}</span>
         </div>
         
-        {tender.categorieOpera && tender.categorieOpera.length > 0 && (
+        {/* Mostra categorie opera se disponibili, altrimenti mostra CPV */}
+        {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
           <div className="mt-3">
             <div className="flex justify-end flex-wrap gap-1">
               {tender.categorieOpera
@@ -224,10 +225,13 @@ export function TenderCard({ tender }: TenderCardProps) {
                   </HoverCardContent>
                 </HoverCard>
               )}
-              
-              {/* Mostra CPV per categorie fs o fb */}
-              {tender.cpv && tender.cpv !== "CPV non specificato" && tender.categorieOpera.some(cat => 
-                cat.id_categoria.toLowerCase() === 'fs' || cat.id_categoria.toLowerCase() === 'fb') && (
+            </div>
+          </div>
+        ) : (
+          /* Mostra CPV se non ci sono categorie opera disponibili */
+          tender.cpv && tender.cpv !== "CPV non specificato" && (
+            <div className="mt-3">
+              <div className="flex justify-end flex-wrap gap-1">
                 <HoverCard>
                   <HoverCardTrigger asChild>
                     <Badge variant="outline" className="cursor-help">
@@ -241,9 +245,9 @@ export function TenderCard({ tender }: TenderCardProps) {
                     </div>
                   </HoverCardContent>
                 </HoverCard>
-              )}
+              </div>
             </div>
-          </div>
+          )
         )}
       </CardContent>
       <CardFooter className="pt-2 mt-auto">
