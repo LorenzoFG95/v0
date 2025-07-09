@@ -11,8 +11,8 @@ import {
   Users,
   Clock,
   Hash,
-  Link, // Aggiungi l'icona Link
-  MapPin, // Aggiungi l'icona MapPin
+  Link,
+  MapPin,
 } from "lucide-react";
 import {
   HoverCard,
@@ -26,53 +26,95 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Funzione per determinare la variante del badge in base alla natura principale
+function getNaturaBadgeVariant(natura?: string): "lavori" | "forniture" | "servizi" | "outline" {
+  if (!natura) return "outline"
+  
+  switch (natura.toLowerCase()) {
+    case "lavori":
+      return "lavori" // bordo blu
+    case "forniture":
+      return "forniture" // bordo grigio
+    case "servizi":
+      return "servizi" // bordo ambra
+    default:
+      return "outline"
+  }
+}
+
+// Funzione per determinare lo stile della scadenza in base alla data
+function getDeadlineStyle(deadlineDate: string): { color: string; text: string } {
+  const today = new Date();
+  const deadline = new Date(deadlineDate);
+  const oneWeek = 7 * 24 * 60 * 60 * 1000; // Una settimana in millisecondi
+  
+  // Rimuovi l'orario per confrontare solo le date
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  
+  const timeDiff = deadline.getTime() - today.getTime();
+  
+  if (timeDiff < 0) {
+    // Scadenza passata
+    return { 
+      color: "text-red-600 bg-red-50", 
+      text: "Scaduta il" 
+    };
+  } else if (timeDiff <= oneWeek) {
+    // Scadenza entro una settimana
+    return { 
+      color: "text-yellow-600 bg-yellow-50", 
+      text: "Scade" 
+    };
+  } else {
+    // Scadenza oltre una settimana (default)
+    return { 
+      color: "text-green-600 bg-green-50", 
+      text: "Scade" 
+    };
+  }
+}
+
 interface TenderDetailsProps {
   tender: Tender;
 }
 export function TenderDetails({ tender }: TenderDetailsProps) {
+  // Determina lo stile della scadenza
+  const deadlineStyle = getDeadlineStyle(tender.scadenza);
+  
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg border p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex gap-2">
-            <Badge className="mb-2">{tender.procedura}</Badge>
+            <Badge variant="outline" className="mb-2">{tender.procedura}</Badge>
             {tender.naturaPrincipale && (
               <Badge 
-                variant={tender.naturaPrincipale.toLowerCase() === "lavori" ? "default" : "secondary"} 
+                variant={getNaturaBadgeVariant(tender.naturaPrincipale)} 
                 className="mb-2"
               >
                 {tender.naturaPrincipale}
               </Badge>
             )}
           </div>
-          <FavoriteButton tenderId={tender.id} />
+          <div className="flex items-center gap-2">
+            <HoverCard>
+              <HoverCardTrigger asChild>
+                <div className={`text-sm font-medium ${deadlineStyle.color} px-2 py-1 rounded-md cursor-help`}>
+                  {deadlineStyle.text}: {formatDate(tender.scadenza)}
+                </div>
+              </HoverCardTrigger>
+              <HoverCardContent className="w-auto">
+                <div className="space-y-1">
+                  <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+            <FavoriteButton tenderId={tender.id} />
+          </div>
         </div>
 
         <h1 className="text-2xl font-bold mb-4">{tender.descrizione}</h1>
-
-        {tender.cig && (
-          <div className="flex items-center mb-4 p-3 bg-blue-50 rounded-lg">
-            <Hash className="text-blue-600 mr-2" size={20} />
-            <div className="flex-1">
-              <div className="text-sm text-blue-600 font-medium">
-                Codice Identificativo Gara
-              </div>
-              <div className="font-mono text-lg text-blue-800">
-                {tender.cig}
-              </div>
-            </div>
-            {tender.criterioAggiudicazione && (
-              <div className="border-l border-blue-200 pl-4 ml-4">
-                <div className="text-sm text-blue-600 font-medium">
-                  Criterio di Aggiudicazione
-                </div>
-                <div className="text-blue-800">
-                  {tender.criterioAggiudicazione}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* <p className="text-gray-700 mb-6">{tender.descrizione}</p> */}
         
@@ -80,11 +122,21 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center">
             <div className="bg-blue-100 p-2 rounded-full">
-              <Euro className="text-blue-600" size={20} />
+              <Hash className="text-blue-600" size={20} />
+            </div>
+            <div className="ml-3">
+              <div className="text-sm text-blue-600 font-medium">Codice Identificativo Gara</div>
+              <div className="font-medium">{tender.cig}</div>
+
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="bg-yellow-100 p-2 rounded-full">
+              <Euro className="text-yellow-600" size={20} />
             </div>
             <div className="ml-3">
               <div className="text-sm text-gray-500">Valore</div>
-              <div className="font-medium">{formatCurrency(tender.valore)}</div>
+              <div className="font-medium text-yellow-600">{formatCurrency(tender.valore)}</div>
               {/* Aggiungi l'importo sicurezza */}
                 {tender.importoSicurezza !== undefined ? (
                   <div className="text-xs text-gray-500 mt-1">
@@ -106,56 +158,43 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
           </div>
 
-          <div className="flex items-center">
-            <div className="bg-red-100 p-2 rounded-full">
-              <Clock className="text-red-600" size={20} />
-            </div>
-            <div className="ml-3">
-              <div className="text-sm text-gray-500">Scadenza</div>
-              <div className="font-medium">{formatDate(tender.scadenza)}</div>
-            </div>
-          </div>
 
-          {tender.partecipanti ? (
+          {/* Sostituiamo partecipanti con criterio di aggiudicazione */}
+          {tender.criterioAggiudicazione && (
             <div className="flex items-center">
               <div className="bg-purple-100 p-2 rounded-full">
-                <Users className="text-purple-600" size={20} />
+                <FileText className="text-purple-600" size={20} />
               </div>
               <div className="ml-3">
-                <div className="text-sm text-gray-500">Partecipanti</div>
-                <div className="font-medium">{tender.partecipanti}</div>
+                <div className="text-sm text-gray-500">Criterio</div>
+                <div className="font-medium">{tender.criterioAggiudicazione}</div>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
 
-                {/* Aggiungi la visualizzazione del link ai documenti di gara */}
-        {tender.documentiDiGaraLink && (
-          <div className="mt-6 p-4 bg-green-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <FileText className="text-green-600 mr-2" size={20} />
-                <div>
-                  <div className="text-sm text-green-600 font-medium">
-                    Documenti di Gara
+                {/* Versione semplificata del link ai documenti di gara */}
+                {tender.documentiDiGaraLink && (
+                  <div className="mt-6 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <FileText className="text-blue-600 mr-2" size={18} />
+                        <div className="text-sm font-medium text-blue-600">
+                          Documenti di Gara
+                        </div>
+                      </div>
+                      <a 
+                        href={tender.documentiDiGaraLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm rounded flex items-center transition-colors duration-200"
+                      >
+                        <FileText className="mr-1" size={14} />
+                        Scarica
+                      </a>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Scarica la documentazione completa relativa a questa gara
-                  </div>
-                </div>
-              </div>
-              <a 
-                href={tender.documentiDiGaraLink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center transition-colors duration-200"
-              >
-                <FileText className="mr-2" size={16} />
-                Scarica Documenti
-              </a>
-            </div>
-          </div>
-        )}
+                )}
       </div>
 
       {/* Modifica qui: cambia il layout per avere 3 colonne in desktop */}
