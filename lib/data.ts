@@ -782,7 +782,7 @@ export async function getCategorieOpera(): Promise<{ id: string; descrizione: st
     const { data, error } = await supabase
       .from("categoria_opera")
       .select("id, descrizione, id_categoria")
-      .order("descrizione")
+      .order("id")
 
     if (error) {
       throw new Error(`Errore nel recupero delle categorie opera: ${error.message}`);
