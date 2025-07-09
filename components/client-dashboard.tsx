@@ -2,12 +2,19 @@
 
 import type React from "react"
 import { useState, useMemo, useEffect } from "react"
-import { Search, SlidersHorizontal, Building, Calendar, Euro, Activity, MapPin } from "lucide-react"
+import { Search, SlidersHorizontal, Building, Calendar, Euro, Activity, MapPin, ChevronDown } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+import { 
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { TenderList } from "@/components/tender-list"
 import type { Tender } from "@/lib/types"
@@ -548,22 +555,32 @@ if (tempFilters.categoriaOpera.length > 0) {
                     <Activity size={16} className="mr-2" />
                     Categorie Opera
                   </label>
-                  <div className="border rounded-md p-3 max-h-60 overflow-y-auto space-y-2">
-                    {categorieOpera.map((cat) => (
-                      <div key={cat.id} className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`cat-${cat.id_categoria}`}
-                          checked={tempFilters.categoriaOpera.includes(cat.id_categoria)}
-                          onCheckedChange={() => toggleCategoriaOpera(cat.id_categoria)}
-                        />
-                        <label 
-                          htmlFor={`cat-${cat.id_categoria}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {cat.descrizione}
-                        </label>
-                      </div>
-                    ))}
+                  <div className="relative">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                          <span>
+                            {tempFilters.categoriaOpera.length > 0 
+                              ? `${tempFilters.categoriaOpera.length} categorie selezionate` 
+                              : "Seleziona categorie"}
+                          </span>
+                          <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-full max-h-60 overflow-y-auto">
+                        <DropdownMenuLabel>Categorie Opera</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {categorieOpera.map((cat) => (
+                          <DropdownMenuCheckboxItem
+                            key={cat.id}
+                            checked={tempFilters.categoriaOpera.includes(cat.id_categoria)}
+                            onCheckedChange={() => toggleCategoriaOpera(cat.id_categoria)}
+                          >
+                            {cat.descrizione}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                   <div className="flex items-center space-x-2 pt-2">
                     <input
