@@ -146,7 +146,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
           </div>
 
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <div className="bg-green-100 p-2 rounded-full">
               <Calendar className="text-green-600" size={20} />
             </div>
@@ -156,7 +156,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 {formatDate(tender.pubblicazione)}
               </div>
             </div>
-          </div>
+          </div> */}
 
 
           {/* Sostituiamo partecipanti con criterio di aggiudicazione */}
@@ -259,26 +259,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </h2>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm font-medium text-gray-500">
-                  Codice CPV
-                </div>
-                <div>{tender.cpv}</div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium text-gray-500">
-                  Descrizione
-                </div>
-                <div>{tender.categoria}</div>
-              </div>
-
-              {/* Rimosso il blocco "Procedura" */}
-
-              {/* Rimosso il blocco "Tipo di gara" */}
-
-              {tender.categorieOpera && tender.categorieOpera.length > 0 && 
+            {tender.categorieOpera && tender.categorieOpera.length > 0 && 
                 tender.naturaPrincipale?.toLowerCase() === "lavori" && (
                 <div>
                   <div className="text-sm font-medium text-gray-500 mb-2">
@@ -320,6 +301,27 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                   </div>
                 </div>
               )}
+
+            <div className="space-y-4 mt-4">
+              <div>
+                <div className="text-sm font-medium text-gray-500">
+                  Codice CPV
+                </div>
+                <div>{tender.cpv}</div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium text-gray-500">
+                  Descrizione
+                </div>
+                <div>{tender.categoria}</div>
+              </div>
+
+              {/* Rimosso il blocco "Procedura" */}
+
+              {/* Rimosso il blocco "Tipo di gara" */}
+
+              
             </div>
           </CardContent>
         </Card>
