@@ -157,13 +157,13 @@ export function ClientDashboard({
 
     // Apply stato filter
     if (filters.stato !== "all") {
-      const statoMap: Record<string, string> = {
-        active: "In corso",
-        complete: "Conclusa",
-        planning: "Pianificazione",
-      }
-      const targetStato = statoMap[filters.stato]
-      result = result.filter((tender) => tender.planificazione === targetStato)
+      // const statoMap: Record<string, string> = {
+      //   active: "In corso",
+      //   complete: "Conclusa",
+      //   planning: "Pianificazione",
+      // }
+      // const targetStato = statoMap[filters.stato]
+      // result = result.filter((tender) => tender.planificazione === targetStato)
     }
 
     // Apply date filters
@@ -607,9 +607,9 @@ if (tempFilters.categoriaOpera.length > 0) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tutti</SelectItem>
-                    <SelectItem value="active">In corso</SelectItem>
-                    <SelectItem value="complete">Conclusa</SelectItem>
-                    <SelectItem value="planning">Programmazione</SelectItem>
+                    <SelectItem value="attiva">Attiva</SelectItem>
+                    <SelectItem value="in-scadenza">In scadenza</SelectItem>
+                    <SelectItem value="scaduta">Scaduta</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -781,8 +781,18 @@ if (tempFilters.categoriaOpera.length > 0) {
             </Badge>
           )}
           {filters.stato !== "all" && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
-              Stato: {filters.stato}
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${
+              filters.stato === "attiva" ? "bg-green-100 text-green-800" :
+              filters.stato === "in-scadenza" ? "bg-yellow-100 text-yellow-800" :
+              filters.stato === "scaduta" ? "bg-red-100 text-red-800" :
+              "bg-orange-100 text-orange-800"
+            }`}>
+              Stato: {
+                filters.stato === "attiva" ? "Attiva" :
+                filters.stato === "in-scadenza" ? "In scadenza" :
+                filters.stato === "scaduta" ? "Scaduta" :
+                filters.stato
+              }
             </span>
           )}
           {filters.criterioAggiudicazione !== "all" && (

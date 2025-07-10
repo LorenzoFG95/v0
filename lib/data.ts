@@ -266,6 +266,34 @@ export async function getTenders(filters: {
       dataQuery = dataQuery.in("id", gareIdsWithCategoriaOpera);
     }
 
+    if (stato) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Rimuovi l'orario per confrontare solo le date
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Calcola la data di una settimana da oggi
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+      const nextWeekStr = nextWeek.toISOString().split('T')[0];
+      
+      switch (stato) {
+        case "attiva":
+          // Mostra tender non scaduti (scadenza >= oggi)
+          dataQuery = dataQuery.gte("scadenza_offerta", todayStr);
+          break;
+        case "in-scadenza":
+          // Mostra tender in scadenza entro una settimana (oggi <= scadenza <= oggi+7giorni)
+          dataQuery = dataQuery
+            .gte("scadenza_offerta", todayStr)
+            .lte("scadenza_offerta", nextWeekStr);
+          break;
+        case "scaduta":
+          // Mostra tender scaduti (scadenza < oggi)
+          dataQuery = dataQuery.lt("scadenza_offerta", todayStr);
+          break;
+      }
+    }
+
     // Eseguiamo la query per ottenere sia i dati che il conteggio
     const { data: gareData, count, error: gareError } = await dataQuery
       .order("data_pubblicazione", { ascending: false })
