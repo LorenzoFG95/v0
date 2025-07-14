@@ -16,6 +16,13 @@ export interface CategoriaOpera {
   descrizione_tipo_categoria: string
 }
 
+export interface RUP {
+  nome?: string
+  cognome?: string
+  email?: string
+  telefono?: string
+}
+
 export interface Tender {
   id: string
   cig?: string // Aggiunto il CIG
@@ -35,7 +42,8 @@ export interface Tender {
   stazioneAppaltante: StazioneAppaltante
   partecipanti?: number
   categorieOpera?: CategoriaOpera[]
-  documentiDiGaraLink?: string 
+  documentiDiGaraLink?: string
+  rup?: RUP // Nuovo campo per i dati del RUP
 }
 
 export interface TenderFilters {

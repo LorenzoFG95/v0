@@ -178,6 +178,8 @@ def fetch_cig_details(cig: str) -> Optional[dict]:
             url = f"{SUPRESET_BASE}/api/v1/chart/data?form_data=%7B%22slice_id%22%3A372%7D&dashboard_id=26&force"
             response = requests.post(url, headers=headers, cookies=cookies, json=payload, timeout=current_timeout)
             response.raise_for_status()
+            
+            # Restituisci i dati JSON dalla risposta
             return response.json()
             
         except requests.exceptions.Timeout:

@@ -221,10 +221,30 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 <div className="text-sm font-medium text-gray-500">
                   Contatto
                 </div>
-                <div>{tender.stazioneAppaltante.contatto}</div>
-                <div className="text-sm text-blue-600">
-                  {tender.stazioneAppaltante.email}
-                </div>
+                {tender.rup ? (
+                  <>
+                    <div className="font-medium">
+                      {tender.rup.nome} {tender.rup.cognome}
+                    </div>
+                    {tender.rup.email && (
+                      <div className="text-sm text-blue-600">
+                        {tender.rup.email}
+                      </div>
+                    )}
+                    {tender.rup.telefono && (
+                      <div className="text-sm text-gray-500">
+                        Tel: {tender.rup.telefono}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div>{tender.stazioneAppaltante.contatto}</div>
+                )}
+                {!tender.rup && tender.stazioneAppaltante.email && (
+                  <div className="text-sm text-blue-600">
+                    {tender.stazioneAppaltante.email}
+                  </div>
+                )}
               </div>
 
               <div>

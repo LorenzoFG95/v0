@@ -230,6 +230,7 @@ def merge_data(bando: Dict, cig_data: Dict) -> Dict:
         data_items = cig_data.get("result", [{}])[0].get("data", [])
         if data_items:
             item = data_items[0]
+            print(f"DEBUG merge_data: chiavi disponibili = {list(item.keys())}")  # ← AGGIUNGI QUESTA RIGA
             # Alcune colonne sono stringhe con JSON incorporato
             for k in [
                 "stazione_appaltante",
@@ -237,8 +238,11 @@ def merge_data(bando: Dict, cig_data: Dict) -> Dict:
                 "categorie_opera",
                 "quadro_economico",
                 "template",
+                "incaricati",
+                "pubblicazioni",
             ]:
                 val = item.get(k)
+                print(f"DEBUG merge_data: campo '{k}' = {type(val)} - {str(val)[:100]}...")  # ← AGGIUNGI QUESTA RIGA
                 if isinstance(val, str):
                     try:
                         merged["cig_details"][k] = json.loads(val)
@@ -604,6 +608,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                     stato_procedura_id = stato_map.get("active")  # Default
                     print(f"  ↳ Usando valore default 'active' -> {stato_procedura_id}")
 
+            # Inizializza tipo_procedura_id prima del blocco di debug
             tipo_procedura_id = None
             if tipo_procedura:
                 # Dizionario di mappatura per tipo_procedura
@@ -623,7 +628,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                     "direct": "direct",
                     "affidamento": "direct"
                 }
-                    # Normalizza e cerca nella mappa
+                # Normalizza e cerca nella mappa
                 tipo_procedura_norm = tipo_procedura.lower()
                 
                 # Aggiungi debug per vedere cosa contiene tipo_procedura
@@ -646,7 +651,69 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                         # Usa open come default se non è stato possibile mappare
                         tipo_procedura_id = tipo_procedura_map.get("open")  # Default
                         print(f"  ↳ Usando valore default 'open' -> {tipo_procedura_id}")
-
+                
+                # Verifica se è una manifestazione di interesse
+                pubblicazioni = cig_details.get('pubblicazioni', {})
+                if isinstance(pubblicazioni, str):
+                    try:
+                        pubblicazioni = json.loads(pubblicazioni)
+                    except json.JSONDecodeError:
+                        pubblicazioni = {}
+                
+                # Se è una procedura negoziata e contiene "SCADENZA INVITO" nelle pubblicazioni,
+                # allora è una manifestazione di interesse
+                if tipo_procedura_mapping.get(tipo_procedura_norm) == "negotiated" and pubblicazioni:
+                    if isinstance(pubblicazioni, dict) and any("SCADENZA INVITO" in str(v) for v in pubblicazioni.values()):
+                        print(f"  ↳ Rilevata manifestazione di interesse nelle pubblicazioni")
+                        tipo_procedura_id = tipo_procedura_map.get("manifestazione_interesse")
+                        print(f"  ↳ Tipo procedura aggiornato a manifestazione_interesse -> {tipo_procedura_id}")
+                
+                # Estrai informazioni sul RUP
+                rup_nome = None
+                rup_cognome = None
+                rup_email = None
+                rup_telefono = None
+                
+                # Cerca nel campo incaricati
+                # Cerca nel campo incaricati
+                incaricati = cig_details.get('incaricati', [])
+                print(f"  ↳ DEBUG: incaricati raw = {type(incaricati)} - {str(incaricati)[:200]}...")
+                
+                # Gestisci sia il caso di lista che di stringa JSON
+                if isinstance(incaricati, list):
+                    # È già una lista, usala direttamente
+                    incaricati_list = incaricati
+                    print(f"  ↳ DEBUG: incaricati è già una lista con {len(incaricati_list)} elementi")
+                elif isinstance(incaricati, str):
+                    # È una stringa, prova a parsarla come JSON
+                    print(f"  ↳ DEBUG: incaricati è una stringa, tentativo di parsing JSON")
+                    try:
+                        incaricati_list = json.loads(incaricati)
+                        print(f"  ↳ DEBUG: JSON parsing riuscito, tipo: {type(incaricati_list)}")
+                    except json.JSONDecodeError as e:
+                        print(f"  ⚠️ Errore nel parsing degli incaricati: {e}")
+                        incaricati_list = []
+                else:
+                    print(f"  ↳ DEBUG: incaricati tipo non supportato: {type(incaricati)}")
+                    incaricati_list = []
+                
+                # Processa la lista per trovare il RUP
+                if isinstance(incaricati_list, list):
+                    print(f"  ↳ DEBUG: processando lista con {len(incaricati_list)} elementi")
+                    for i, inc_item in enumerate(incaricati_list):
+                        print(f"  ↳ DEBUG: elemento {i}: {inc_item}")
+                        if inc_item.get('COD_RUOLO') == 'RUP' or 'RUP' in str(inc_item.get('DESCRIZIONE_RUOLO', '')).upper():
+                            rup_nome = inc_item.get('NOME', '')
+                            rup_cognome = inc_item.get('COGNOME', '')
+                            rup_email = inc_item.get('EMAIL', '')
+                            rup_telefono = inc_item.get('TELEFONO', '')
+                            print(f"  ↳ RUP trovato: {rup_nome} {rup_cognome}")
+                            break
+                else:
+                    print(f"  ↳ DEBUG: incaricati_list non è una lista: {type(incaricati_list)}")
+                
+                print(f"  ↳ DEBUG: Risultato estrazione RUP - nome: '{rup_nome}', cognome: '{rup_cognome}'")
+                
         # ------------------------- LOTTI -------------------------
 
         gara_payload = {
@@ -676,6 +743,42 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             )
             gara_id = res.data[0]["id"]
             gare += 1
+            
+            # Inserisci i dati del RUP se disponibili
+            if rup_nome or rup_cognome:
+                rup_payload = {
+                    "gara_id": gara_id,
+                    "nome": rup_nome,
+                    "cognome": rup_cognome,
+                    "email": rup_email,
+                    "telefono": rup_telefono
+                }
+                try:
+                    supabase.table("rup").upsert(
+                        rup_payload, on_conflict="gara_id", returning="minimal"
+                    ).execute()
+                    print(f"  ↳ Inserito RUP per gara {cig}")
+                except Exception as exc:
+                    print(f"  ↳ errore inserimento RUP per gara {cig}: {exc}")
+            
+            # Inserisci i dati delle pubblicazioni se disponibili
+            if pubblicazioni and isinstance(pubblicazioni, dict):
+                pubblicazione_payload = {
+                    "gara_id": gara_id,
+                    "data_creazione": pubblicazioni.get("DATA_CREAZIONE"),
+                    "data_pubblicazione": pubblicazioni.get("DATA_PUBBLICAZIONE"),
+                    "data_guri": pubblicazioni.get("DATA_GURI"),
+                    "link_sito_committente": pubblicazioni.get("LINK_SITO_COMMITTENTE"),
+                    "scadenza_invito": pubblicazioni.get("SCADENZA_INVITO")
+                }
+                try:
+                    supabase.table("pubblicazione").upsert(
+                        pubblicazione_payload, on_conflict="gara_id", returning="minimal"
+                    ).execute()
+                    print(f"  ↳ Inserite pubblicazioni per gara {cig}")
+                except Exception as exc:
+                    print(f"  ↳ errore inserimento pubblicazioni per gara {cig}: {exc}")
+                    
         except Exception as exc:
             print(f"  ↳ errore gara {cig}: {exc}")
             continue
@@ -731,7 +834,7 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             continue
 
         # -------------- LOTTO ⇄ CATEGORIE OPERA (ponte) ----------
-        cats = cig_details.get("categorie_opera", [])
+        cats = cig_details.get("categorie_opera") or []
         if isinstance(cats, str):
             try:
                 cats = json.loads(cats) if cats.strip().upper() != "N/A" else []

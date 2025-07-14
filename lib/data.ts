@@ -679,6 +679,29 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
     // Mappiamo i dati includendo le categorie opera
     const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, naturaPrincipaleData, criterioAggiudicazioneData, tipoProceduraData)
     tender.categorieOpera = categorieOperaData
+    
+    // Otteniamo i dati del RUP
+    let rupData = undefined
+    const { data: rup, error: rupError } = await supabase
+      .from("rup")
+      .select("*")
+      .eq("gara_id", garaData.id)
+      .single()
+
+    if (!rupError && rup) {
+      rupData = rup
+    }
+    
+    // Aggiungiamo i dati del RUP
+    if (rupData) {
+      tender.rup = {
+        nome: rupData.nome,
+        cognome: rupData.cognome,
+        email: rupData.email,
+        telefono: rupData.telefono
+      }
+    }
+    
     return tender
 
   } catch (error) {
