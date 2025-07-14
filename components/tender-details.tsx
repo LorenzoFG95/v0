@@ -138,7 +138,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
               <div className="text-sm text-gray-500">Valore</div>
               <div className="font-medium text-yellow-600">{formatCurrency(tender.valore)}</div>
               {/* Aggiungi l'importo sicurezza */}
-                {tender.importoSicurezza !== undefined ? (
+                {(tender.importoSicurezza !== undefined && tender.importoSicurezza > 0) ? (
                   <div className="text-xs text-gray-500 mt-1">
                     Oneri sicurezza: {formatCurrency(tender.importoSicurezza)}
                   </div>
