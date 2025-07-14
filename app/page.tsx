@@ -25,7 +25,7 @@ export default async function Home({ searchParams }: { searchParams: Record<stri
     categoriaOpera: Array.isArray(params.categoriaOpera) ? params.categoriaOpera : params.categoriaOpera ? [params.categoriaOpera as string] : [],
     soloPrevalente: params.soloPrevalente === 'true',
     categoria: params.categoria as string,
-    stato: params.stato as string,
+    stato: params.stato as string || "attiva", // Aggiunto default "attiva"
     startDate: params.startDate as string,
     endDate: params.endDate as string,
     minValue: params.minValue ? parseFloat(params.minValue as string) : undefined,

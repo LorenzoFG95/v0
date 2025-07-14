@@ -65,7 +65,7 @@ export function ClientDashboard({
     categoriaOpera: [] as string[], // Modificato da "all" a [] (array vuoto)
     soloPrevalente: false,
     categoria: "all",
-    stato: "all",
+    stato: "attiva",
     startDate: "",
     endDate: "",
     minValue: "",
@@ -81,6 +81,34 @@ export function ClientDashboard({
 
     // Temporary filter state (for when user is editing filters but hasn't applied them yet)
   const [tempFilters, setTempFilters] = useState(filters)
+
+  useEffect(() => {
+  // Sincronizza i filtri con i parametri URL al caricamento della pagina
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialFilters = {
+  categoriaOpera: urlParams.getAll('categoriaOpera') || [],
+  soloPrevalente: urlParams.get('soloPrevalente') === 'true',
+  categoria: urlParams.get('categoria') || "all",
+  stato: urlParams.get('stato') || "attiva", // Default "attiva"
+  startDate: urlParams.get('startDate') || "",
+  endDate: urlParams.get('endDate') || "",
+  minValue: urlParams.get('minValue') || "",
+  maxValue: urlParams.get('maxValue') || "",
+  criterioAggiudicazione: urlParams.get('criterioAggiudicazione') || "all",
+  regione: urlParams.get('regione') || "all",
+  citta: urlParams.get('citta') || "all",
+  tipoProcedura: urlParams.get('tipoProcedura') || "all"
+  };
+
+  setFilters(initialFilters);
+  setTempFilters(initialFilters);
+
+  // Imposta anche la query di ricerca se presente
+  const searchQuery = urlParams.get('searchQuery');
+  if (searchQuery) {
+  setSearchQuery(searchQuery);
+  }
+  }, []); // Esegui solo al mount del componente
   
   // Effetto per caricare le città quando cambia la regione
   useEffect(() => {
@@ -318,9 +346,7 @@ if (tempFilters.categoriaOpera.length > 0) {
       queryParams.append('categoria', tempFilters.categoria);
     }
     
-    if (tempFilters.stato !== 'all') {
-      queryParams.append('stato', tempFilters.stato);
-    }
+    queryParams.append('stato', tempFilters.stato);
     
     if (tempFilters.startDate) {
       queryParams.append('startDate', tempFilters.startDate);
@@ -370,7 +396,7 @@ if (tempFilters.categoriaOpera.length > 0) {
         categoriaOpera: [] as string[], // Modificato da "all" a [] (array vuoto)
         soloPrevalente: false,
         categoria: "all",
-        stato: "all",
+        stato: "attiva",
         startDate: "",
         endDate: "",
         minValue: "",
