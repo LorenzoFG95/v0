@@ -56,10 +56,19 @@ export function RegisterForm() {
           ]);
 
         if (profileError) throw profileError;
+        
+        // 3. Effettua il login automatico dopo la registrazione
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (signInError) throw signInError;
+        
+        // 4. Reindirizza direttamente alla dashboard
+        router.push("/");
+        router.refresh();
       }
-
-      // Reindirizza alla pagina di conferma
-      router.push("/auth/login?registered=true");
     } catch (error: any) {
       setError(error.message || "Si è verificato un errore durante la registrazione");
     } finally {
