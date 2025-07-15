@@ -24,7 +24,7 @@ export function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
+  
     try {
       // 1. Registra l'utente con Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -37,11 +37,18 @@ export function RegisterForm() {
           },
         },
       });
-
+  
       if (authError) throw authError;
-
-      // 2. Crea il profilo utente nel database
-      if (authData.user) {
+  
+      // 2. Controlla se l'utente è già confermato o se serve conferma email
+      if (authData.user && !authData.session) {
+        // L'utente deve confermare l'email
+        router.push("/auth/login?message=Controlla la tua email per confermare l'account");
+        return;
+      }
+  
+      // 3. Se l'utente è già confermato, crea il profilo
+      if (authData.user && authData.session) {
         const { error: profileError } = await supabase
           .from("utente")
           .insert([
@@ -50,24 +57,16 @@ export function RegisterForm() {
               email: authData.user.email,
               nome,
               cognome,
+              telefono,
               data_registrazione: new Date().toISOString(),
               attivo: true,
             },
           ]);
-
+  
         if (profileError) throw profileError;
         
-        // 3. Effettua il login automatico dopo la registrazione
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (signInError) throw signInError;
-        
-        // 4. Reindirizza direttamente alla dashboard
+        // 4. Reindirizza alla homepage (l'utente è già loggato)
         router.push("/");
-        router.refresh();
       }
     } catch (error: any) {
       setError(error.message || "Si è verificato un errore durante la registrazione");
