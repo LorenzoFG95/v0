@@ -14,8 +14,7 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
   const [cognome, setCognome] = useState("");
-  const [azienda, setAzienda] = useState("");
-  const [ruolo, setRuolo] = useState("");
+  const [telefono, setTelefono] = useState(""); // Nuovo campo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -44,14 +43,15 @@ export function RegisterForm() {
       // 2. Crea il profilo utente nel database
       if (authData.user) {
         const { error: profileError } = await supabase
-          .from("user_profiles")
+          .from("utente")
           .insert([
             {
               id: authData.user.id,
+              email: authData.user.email,
               nome,
               cognome,
-              azienda,
-              ruolo,
+              data_registrazione: new Date().toISOString(),
+              attivo: true,
             },
           ]);
 
@@ -128,24 +128,6 @@ export function RegisterForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="azienda">Azienda (opzionale)</Label>
-            <Input
-              id="azienda"
-              placeholder="Nome Azienda"
-              value={azienda}
-              onChange={(e) => setAzienda(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ruolo">Ruolo (opzionale)</Label>
-            <Input
-              id="ruolo"
-              placeholder="Es. Project Manager"
-              value={ruolo}
-              onChange={(e) => setRuolo(e.target.value)}
             />
           </div>
           {error && (

@@ -13,8 +13,7 @@ export function ProfileForm() {
   const { user, profile, loading } = useAuth()
   const [nome, setNome] = useState("")
   const [cognome, setCognome] = useState("")
-  const [azienda, setAzienda] = useState("")
-  const [ruolo, setRuolo] = useState("")
+  const [telefono, setTelefono] = useState("") // Nuovo campo
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,8 +23,7 @@ export function ProfileForm() {
     if (profile) {
       setNome(profile.nome || "")
       setCognome(profile.cognome || "")
-      setAzienda(profile.azienda || "")
-      setRuolo(profile.ruolo || "")
+      setTelefono(profile.telefono || "")
     }
   }, [profile])
 
@@ -39,13 +37,10 @@ export function ProfileForm() {
 
     try {
       const { error } = await supabase
-        .from("user_profiles")
+        .from("utente")
         .update({
           nome,
           cognome,
-          azienda,
-          ruolo,
-          updated_at: new Date().toISOString(),
         })
         .eq("id", user.id)
 
@@ -123,19 +118,12 @@ export function ProfileForm() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="azienda">Azienda (opzionale)</Label>
+            <Label htmlFor="telefono">Telefono (opzionale)</Label>
             <Input
-              id="azienda"
-              value={azienda}
-              onChange={(e) => setAzienda(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="ruolo">Ruolo (opzionale)</Label>
-            <Input
-              id="ruolo"
-              value={ruolo}
-              onChange={(e) => setRuolo(e.target.value)}
+              id="telefono"
+              type="tel"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
             />
           </div>
           {error && (
