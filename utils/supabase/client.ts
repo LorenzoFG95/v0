@@ -1,6 +1,11 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
+// Crea una singola istanza del client Supabase
+let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null
+
 export function createClient() {
+  if (supabaseInstance) return supabaseInstance
+  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -8,5 +13,6 @@ export function createClient() {
     throw new Error("Missing Supabase environment variables")
   }
 
-  return createSupabaseClient(supabaseUrl, supabaseAnonKey)
+  supabaseInstance = createSupabaseClient(supabaseUrl, supabaseAnonKey)
+  return supabaseInstance
 }
