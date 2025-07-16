@@ -891,37 +891,15 @@ export async function getCriterioAggiudicazione(): Promise<{ id: string; descriz
 
 
 export async function getRegioni(): Promise<{ regione: string }[]> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error("Variabili di ambiente Supabase non configurate.");
-  }
+  // Lista completa delle regioni italiane (in maiuscolo per coerenza con il DB)
+  const tutte_regioni = [
+    "ABRUZZO", "BASILICATA", "CALABRIA", "CAMPANIA", "EMILIA-ROMAGNA",
+    "FRIULI-VENEZIA GIULIA", "LAZIO", "LIGURIA", "LOMBARDIA", "MARCHE",
+    "MOLISE", "PIEMONTE", "PUGLIA", "SARDEGNA", "SICILIA",
+    "TOSCANA", "TRENTINO-ALTO ADIGE", "UMBRIA", "VALLE D'AOSTA", "VENETO"
+  ];
 
-  try {
-    const supabase = createClient()
-
-    // Verifica se la tabella esiste
-    const exists = await tableExists(supabase, "ente_appaltante")
-    if (!exists) {
-      throw new Error("La tabella 'ente_appaltante' non esiste.");
-    }
-
-    const { data, error } = await supabase
-      .from("ente_appaltante")
-      .select("regione")
-      .not("regione", "is", null)
-      .order("regione")
-
-    if (error) {
-      throw new Error(`Errore nel recupero delle regioni: ${error.message}`);
-    }
-
-    // Deduplicare le regioni e filtrare le stringhe vuote
-    const regioni = [...new Set(data?.map(item => item.regione))].filter(regione => regione.trim() !== "");
-    
-    return regioni.map(regione => ({ regione })) || [];
-  } catch (error) {
-    console.error("Errore generale nel recupero delle regioni:", error)
-    throw error;
-  }
+  return tutte_regioni.map(regione => ({ regione }));
 }
 
 export async function getCittaByRegione(regione: string): Promise<{ citta: string }[]> {
