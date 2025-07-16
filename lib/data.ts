@@ -278,18 +278,18 @@ export async function getTenders(filters: {
       
       switch (stato) {
         case "attiva":
-          // Mostra tender non scaduti (scadenza >= oggi)
-          dataQuery = dataQuery.gte("scadenza_offerta", todayStr);
+          // Mostra tender non scaduti (scadenza > oggi)
+          dataQuery = dataQuery.gt("scadenza_offerta", todayStr);
           break;
         case "in-scadenza":
-          // Mostra tender in scadenza entro una settimana (oggi <= scadenza <= oggi+7giorni)
+          // Mostra tender in scadenza entro una settimana (oggi < scadenza <= oggi+7giorni)
           dataQuery = dataQuery
-            .gte("scadenza_offerta", todayStr)
+            .gt("scadenza_offerta", todayStr)
             .lte("scadenza_offerta", nextWeekStr);
           break;
         case "scaduta":
-          // Mostra tender scaduti (scadenza < oggi)
-          dataQuery = dataQuery.lt("scadenza_offerta", todayStr);
+          // Mostra tender scaduti (scadenza <= oggi)
+          dataQuery = dataQuery.lte("scadenza_offerta", todayStr);
           break;
       }
     }
