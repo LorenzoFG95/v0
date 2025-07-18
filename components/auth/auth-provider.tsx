@@ -26,28 +26,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [supabase] = useState(() => createClient())
 
+  // Timeout di sicurezza per evitare il caricamento infinito
+  useEffect(() => {
+    const safetyTimeout = setTimeout(() => {
+      setLoading(false)
+    }, 10000) // 10 secondi di timeout
+
+    return () => clearTimeout(safetyTimeout)
+  }, [])
+
   useEffect(() => {
     let isMounted = true
 
     async function getUser() {
       try {
-        // Ottieni l'utente corrente
-        const { data, error } = await supabase.auth.getUser()
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
         
         if (!isMounted) return
         
-        // Gestisci specificamente l'errore AuthSessionMissingError
-        if (error) {
-          // Se l'errore è AuthSessionMissingError, è normale quando non c'è un utente loggato
+        if (sessionError) {
           setUser(null)
           setProfile(null)
-          return // Continua con setLoading(false) nel blocco finally
+          setLoading(false)
+          return
         }
         
-        const user = data?.user
+        const user = sessionData?.session?.user || null
         setUser(user)
-
-        // Se c'è un utente, ottieni il suo profilo
+        
         if (user) {
           try {
             const { data: profile, error: profileError } = await supabase
@@ -59,24 +65,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isMounted) return
 
             if (profileError) {
-              // Non bloccare l'autenticazione se il profilo non esiste
               setProfile(null)
             } else {
               setProfile(profile)
             }
           } catch (profileError) {
-            setProfile(null)
+            if (isMounted) setProfile(null)
+          } finally {
+            if (isMounted) setLoading(false)
           }
         } else {
           setProfile(null)
+          setLoading(false)
         }
       } catch (error) {
         if (isMounted) {
           setUser(null)
           setProfile(null)
-        }
-      } finally {
-        if (isMounted) {
           setLoading(false)
         }
       }

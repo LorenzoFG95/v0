@@ -22,6 +22,8 @@ export function ProfileForm() {
   const [error, setError] = useState<string | null>(null)
   const [azienda, setAzienda] = useState<any>(null)
   const [showAziendaForm, setShowAziendaForm] = useState(false)
+  // Imposta lo stato di caricamento
+  const [loadingAzienda, setLoadingAzienda] = useState(false);
   const supabase = createClient()
 
   useEffect(() => {
@@ -30,25 +32,55 @@ export function ProfileForm() {
       setCognome(profile.cognome || "")
       setTelefono(profile.telefono || "")
     }
-    // Carica i dati dell'azienda se l'utente ne ha una
-    loadAzienda()
   }, [profile])
 
+  // Effetto separato che si attiva quando user è disponibile
+  useEffect(() => {
+    // Carica i dati dell'azienda solo quando l'utente è disponibile
+    if (user) {
+      // Prima controlla se ci sono dati nel localStorage
+      const cachedAzienda = localStorage.getItem(`azienda_${user.id}`);
+      if (cachedAzienda) {
+        try {
+          const parsedAzienda = JSON.parse(cachedAzienda);
+          setAzienda(parsedAzienda);
+        } catch (e) {
+          console.error("Errore nel parsing dei dati dal localStorage:", e);
+        }
+      }
+      
+      // Poi prova comunque a caricare i dati freschi dal server
+      loadAzienda();
+    }
+  }, [user])
+
   const loadAzienda = async () => {
-    if (!user) return
+    if (!user) return;
     
     try {
+      setLoadingAzienda(true);
+      
       const { data, error } = await supabase
         .from('azienda')
         .select('*')
         .eq('creata_da', user.id)
-        .single()
+        .single();
       
-      if (!error && data) {
-        setAzienda(data)
+      if (error) {
+        // Se l'errore è 'No rows found' è normale quando l'utente non ha un'azienda
+        if (error.code !== 'PGRST116') {
+          // Gestisci altri tipi di errori
+        }
+      } else if (data) {
+        setAzienda(data);
+        
+        // Salva i dati nel localStorage per il prossimo refresh
+        localStorage.setItem(`azienda_${user.id}`, JSON.stringify(data));
       }
     } catch (error) {
-      // Nessuna azienda trovata
+      console.error("Eccezione in loadAzienda:", error);
+    } finally {
+      setLoadingAzienda(false);
     }
   }
 
@@ -234,8 +266,10 @@ export function ProfileForm() {
           userId={user.id}
           onClose={() => setShowAziendaForm(false)}
           onSave={(newAzienda) => {
-            setAzienda(newAzienda)
-            setShowAziendaForm(false)
+            setAzienda(newAzienda);
+            // Aggiorna anche il localStorage
+            localStorage.setItem(`azienda_${user.id}`, JSON.stringify(newAzienda));
+            setShowAziendaForm(false);
           }}
         />
       )}
