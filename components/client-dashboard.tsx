@@ -58,6 +58,7 @@ export function ClientDashboard({
   // UI State
   const [showFilters, setShowFilters] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(false) // Nuovo stato per il caricamento
   
   // Filter State
   // Filter State
@@ -81,6 +82,13 @@ export function ClientDashboard({
 
     // Temporary filter state (for when user is editing filters but hasn't applied them yet)
   const [tempFilters, setTempFilters] = useState(filters)
+
+  const updateTempFilter = (key: string, value: any) => {
+    setTempFilters(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
 
   useEffect(() => {
   // Sincronizza i filtri con i parametri URL al caricamento della pagina
@@ -136,6 +144,13 @@ export function ClientDashboard({
       setTempFilters(prev => ({ ...prev, citta: "all" }));
     }
   }, [filters.regione, tempFilters.regione]);
+
+
+  useEffect(() => {
+    // Quando initialTenders cambia, significa che i dati sono stati caricati
+    setIsLoading(false);
+  }, [initialTenders]);
+
 
   // Filter the tenders based on current applied filters and search
   const filteredTenders = useMemo(() => {
@@ -253,6 +268,7 @@ export function ClientDashboard({
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true) // Imposta caricamento a true
     
     // Costruiamo i parametri di query
     const queryParams = new URLSearchParams();
@@ -314,18 +330,11 @@ export function ClientDashboard({
     router.push(`${pathname}?${queryParams.toString()}`);
   }
 
-  // Handle temporary filter changes (while editing)
-  const updateTempFilter = (key: string, value: string | boolean | number) => {
-    setTempFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }))
-  }
-
   // Apply filters (when user clicks "Applica Filtri")
   const applyFilters = () => {
     // Aggiorniamo lo stato locale
     setFilters(tempFilters)
+    setIsLoading(true) // Imposta caricamento a true
     
     // Costruiamo i parametri di query per i filtri
     const queryParams = new URLSearchParams();
@@ -862,7 +871,16 @@ if (tempFilters.categoriaOpera.length > 0) {
       </div>*/}
       
       {/* Results */}
-      <TenderList tenders={filteredTenders} />
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+            <p className="text-gray-600">Caricamento in corso...</p>
+          </div>
+        </div>
+      ) : (
+        <TenderList tenders={filteredTenders} />
+      )}
       
       {/* Pagination */}
       {totalPages > 1 && (
@@ -916,3 +934,4 @@ if (tempFilters.categoriaOpera.length > 0) {
     </div>
   )
 }
+
