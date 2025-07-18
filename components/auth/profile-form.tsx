@@ -24,15 +24,76 @@ export function ProfileForm() {
   const [showAziendaForm, setShowAziendaForm] = useState(false)
   // Imposta lo stato di caricamento
   const [loadingAzienda, setLoadingAzienda] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const supabase = createClient()
 
   useEffect(() => {
     if (profile) {
-      setNome(profile.nome || "")
-      setCognome(profile.cognome || "")
-      setTelefono(profile.telefono || "")
+      // Salva i dati del profilo nel localStorage quando sono disponibili
+      const profileData = {
+        nome: profile.nome || "",
+        cognome: profile.cognome || "",
+        telefono: profile.telefono || ""
+      };
+      
+      setNome(profileData.nome);
+      setCognome(profileData.cognome);
+      setTelefono(profileData.telefono);
+      
+      // Salva nel localStorage
+      if (user) {
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(profileData));
+      }
+    } else if (user) {
+      // Se il profilo non è disponibile ma l'utente sì, prova a caricare dal localStorage
+      const cachedProfile = localStorage.getItem(`profile_${user.id}`);
+      if (cachedProfile) {
+        try {
+          const parsedProfile = JSON.parse(cachedProfile);
+          setNome(parsedProfile.nome || "");
+          setCognome(parsedProfile.cognome || "");
+          setTelefono(parsedProfile.telefono || "");
+        } catch (e) {
+          console.error("Errore nel parsing dei dati del profilo dal localStorage:", e);
+        }
+      }
+      
+      // Carica comunque i dati freschi dal server
+      loadUserProfile();
     }
-  }, [profile])
+  }, [profile, user, loading])
+
+  // Funzione per caricare il profilo utente direttamente
+  const loadUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('utente')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) {
+        console.error("Errore nel caricamento del profilo:", error);
+      } else if (data) {
+        // Aggiorna gli stati locali
+        setNome(data.nome || "");
+        setCognome(data.cognome || "");
+        setTelefono(data.telefono || "");
+        
+        // Salva i dati nel localStorage
+        const profileData = {
+          nome: data.nome || "",
+          cognome: data.cognome || "",
+          telefono: data.telefono || ""
+        };
+        localStorage.setItem(`profile_${user.id}`, JSON.stringify(profileData));
+      }
+    } catch (error) {
+      console.error("Eccezione in loadUserProfile:", error);
+    }
+  }
 
   // Effetto separato che si attiva quando user è disponibile
   useEffect(() => {
@@ -104,7 +165,12 @@ export function ProfileForm() {
 
       if (error) throw error
 
+      // Salva i dati aggiornati nel localStorage
+      const profileData = { nome, cognome, telefono };
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(profileData));
+
       setSuccess(true)
+      setEditMode(false); // Disattiva la modalità di modifica dopo il salvataggio
     } catch (error: any) {
       setError(error.message || "Si è verificato un errore durante il salvataggio")
     } finally {
