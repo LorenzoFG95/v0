@@ -154,7 +154,7 @@ export function ProfileForm() {
     setError(null)
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("utente")
         .update({
           nome,
@@ -162,6 +162,7 @@ export function ProfileForm() {
           telefono,
         })
         .eq("id", user.id)
+        .select() // Aggiungi questa riga per ottenere i dati aggiornati
 
       if (error) throw error
 
@@ -169,11 +170,25 @@ export function ProfileForm() {
       const profileData = { nome, cognome, telefono };
       localStorage.setItem(`profile_${user.id}`, JSON.stringify(profileData));
 
+      // Verifica che i dati siano stati aggiornati
+      console.log("Dati aggiornati:", data);
+
       setSuccess(true)
-      setEditMode(false); // Disattiva la modalità di modifica dopo il salvataggio
+      setEditMode(false) // Disattiva la modalità di modifica dopo il salvataggio
+      
+      // Aggiorna manualmente il profilo con i dati appena salvati
+      if (data && data.length > 0) {
+        // Aggiorna gli stati locali con i dati restituiti dal server
+        setNome(data[0].nome || "");
+        setCognome(data[0].cognome || "");
+        setTelefono(data[0].telefono || "");
+      }
+      
+      // Imposta immediatamente saving a false invece di usare un timeout
+      setSaving(false);
+      
     } catch (error: any) {
       setError(error.message || "Si è verificato un errore durante il salvataggio")
-    } finally {
       setSaving(false)
     }
   }
@@ -209,7 +224,7 @@ export function ProfileForm() {
         <CardHeader>
           <CardTitle>Informazioni Personali</CardTitle>
           <CardDescription>
-            Aggiorna le tue informazioni personali
+            {editMode ? "Modifica le tue informazioni personali" : "Visualizza le tue informazioni personali"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -222,6 +237,7 @@ export function ProfileForm() {
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
                   required
+                  disabled={!editMode}
                 />
               </div>
               <div className="space-y-2">
@@ -231,6 +247,7 @@ export function ProfileForm() {
                   value={cognome}
                   onChange={(e) => setCognome(e.target.value)}
                   required
+                  disabled={!editMode}
                 />
               </div>
             </div>
@@ -250,6 +267,7 @@ export function ProfileForm() {
                 type="tel"
                 value={telefono}
                 onChange={(e) => setTelefono(e.target.value)}
+                disabled={!editMode}
               />
             </div>
             {error && (
@@ -262,9 +280,20 @@ export function ProfileForm() {
                 <AlertDescription>Profilo aggiornato con successo!</AlertDescription>
               </Alert>
             )}
-            <Button type="submit" className="w-full" disabled={saving}>
-              {saving ? "Salvataggio in corso..." : "Salva modifiche"}
-            </Button>
+            {editMode ? (
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1" disabled={saving}>
+                  {saving ? "Salvataggio in corso..." : "Salva modifiche"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setEditMode(false)} className="flex-1">
+                  Annulla
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" onClick={() => setEditMode(true)} className="w-full">
+                Modifica Dati Personali
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
