@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { User } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
 
 type AuthContextType = {
   user: User | null
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [supabase] = useState(() => createClient())
+  const router = useRouter()
 
   // Timeout di sicurezza per evitare il caricamento infinito
   useEffect(() => {
@@ -132,13 +134,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (!error) {
-        setUser(null)
-        setProfile(null)
+      
+      // Aggiungiamo un timeout per evitare che si blocchi indefinitamente
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout durante logout')), 5000)
+      )
+      
+      const logoutPromise = supabase.auth.signOut()
+      
+      const { error } = await Promise.race([logoutPromise, timeoutPromise]) as any
+      
+      
+      // Pulizia completa indipendentemente dal risultato
+      setUser(null)
+      setProfile(null)
+      
+      // Pulizia manuale del localStorage per rimuovere completamente la sessione
+      if (typeof window !== 'undefined') {
+        // Rimuovi tutte le chiavi relative a Supabase
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('sb-')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        
+        // Alternativa più drastica: pulisci tutto il localStorage
+        // localStorage.clear()
       }
+      
+      router.push('/auth/login')
+      
+      // Forza un refresh completo della pagina per assicurarsi che tutto sia pulito
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login'
+        }
+      }, 100)
+      
+      
     } catch (error) {
-      // Gestione silenziosa degli errori
+      console.error('❌ Eccezione durante logout:', error)
+      // Anche in caso di errore, proviamo a pulire tutto
+      setUser(null)
+      setProfile(null)
+      
+      if (typeof window !== 'undefined') {
+        // Pulizia localStorage anche in caso di errore
+        const keysToRemove = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('sb-')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        
+        window.location.href = '/auth/login'
+      }
     }
   }
 

@@ -5,13 +5,23 @@ import { Home, FileText, Bookmark, User, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/components/auth/auth-provider"
+import { useState } from "react"
 
 export function Header() {
   const pathname = usePathname()
   const { user, loading, signOut } = useAuth()
+  const [isSigningOut, setIsSigningOut] = useState(false)
   
   const handleSignOut = async () => {
-    await signOut()
+    setIsSigningOut(true)
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('❌ Errore durante signOut:', error)
+    } finally {
+      // Non resettiamo isSigningOut qui perché l'utente verrà reindirizzato
+      // setIsSigningOut(false)
+    }
   }
 
   return (
@@ -52,8 +62,21 @@ export function Header() {
                   <span>{user.email}</span>
                 </Link>
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Esci
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="flex items-center gap-1"
+              >
+                {isSigningOut ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Uscendo...</span>
+                  </>
+                ) : (
+                  "Esci"
+                )}
               </Button>
             </div>
           ) : (
