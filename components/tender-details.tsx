@@ -354,7 +354,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           <CardContent>
             <div className="relative pl-8 border-l-2 border-gray-200 space-y-6">
               <div className="relative">
-                <div className="absolute -left-[25px] bg-blue-600 rounded-full w-4 h-4"></div>
+                <div className="absolute -left-[25px] -top-[-10px] bg-blue-600 rounded-full w-4 h-4"></div>
                 <div className="font-medium">Pubblicazione</div>
                 <div className="text-sm text-gray-500">
                   {formatDate(tender.pubblicazione)} 06:00
@@ -362,7 +362,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
               </div>
 
               <div className="relative">
-                <div className="absolute -left-[25px] bg-green-600 rounded-full w-4 h-4"></div>
+                <div className="absolute -left-[25px] -top-[-10px] bg-blue-600 rounded-full w-4 h-4"></div>
                 <div className="font-medium">Inizio Gara</div>
                 <div className="text-sm text-gray-500">
                   {formatDate(tender.inizioGara)} 06:00
@@ -370,7 +370,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
               </div>
 
               <div className="relative">
-                <div className="absolute -left-[25px] bg-red-600 rounded-full w-4 h-4"></div>
+                <div className="absolute -left-[25px] -top-[-10px] bg-blue-600 rounded-full w-4 h-4"></div>
                 <div className="font-medium">Scadenza Gara</div>
                 <div className="text-sm text-gray-500">
                   {formatDate(tender.scadenza)} 12:00
