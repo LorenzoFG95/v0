@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { User } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
+import { syncFavoritesToDatabase, clearLocalFavorites } from "@/lib/favorites"
 
 type AuthContextType = {
   user: User | null
@@ -71,6 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
               setProfile(profile)
             }
+            
+            // Sincronizza i preferiti al login iniziale
+            try {
+              await syncFavoritesToDatabase(user)
+              console.log('✅ Preferiti sincronizzati al login iniziale')
+            } catch (syncError) {
+              console.error('❌ Errore nella sincronizzazione dei preferiti al login:', syncError)
+            }
           } catch (profileError) {
             if (isMounted) setProfile(null)
           } finally {
@@ -96,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!isMounted) return
         
         const currentUser = session?.user ?? null
+        const previousUser = user
         setUser(currentUser)
 
         if (currentUser) {
@@ -113,11 +123,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
               setProfile(profile)
             }
+            
+            // Sincronizza i preferiti solo se è un nuovo login (non era loggato prima)
+            if (!previousUser && event === 'SIGNED_IN') {
+              try {
+                await syncFavoritesToDatabase(currentUser)
+                console.log('✅ Preferiti sincronizzati al nuovo login')
+              } catch (syncError) {
+                console.error('❌ Errore nella sincronizzazione dei preferiti:', syncError)
+              }
+            }
           } catch (error) {
             if (isMounted) setProfile(null)
           }
         } else {
           setProfile(null)
+          
+          // Se l'utente si disconnette, non cancellare i preferiti locali
+          // (potrebbero essere utili per un futuro login)
         }
 
         if (isMounted) {
@@ -134,7 +157,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      
       // Aggiungiamo un timeout per evitare che si blocchi indefinitamente
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout durante logout')), 5000)
@@ -143,7 +165,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const logoutPromise = supabase.auth.signOut()
       
       const { error } = await Promise.race([logoutPromise, timeoutPromise]) as any
-      
       
       // Pulizia completa indipendentemente dal risultato
       setUser(null)
@@ -161,8 +182,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         keysToRemove.forEach(key => localStorage.removeItem(key))
         
-        // Alternativa più drastica: pulisci tutto il localStorage
-        // localStorage.clear()
+        // NON cancellare i preferiti locali al logout
+        // Gli utenti potrebbero voler mantenere i loro preferiti
+        // anche quando non sono loggati
       }
       
       router.push('/auth/login')
@@ -173,7 +195,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           window.location.href = '/auth/login'
         }
       }, 100)
-      
       
     } catch (error) {
       console.error('❌ Eccezione durante logout:', error)

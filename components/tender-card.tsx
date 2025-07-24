@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Calendar, Euro, Bookmark, Hash, MapPin, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import type { Tender } from "@/lib/types"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { toggleFavorite, isFavorite } from "@/lib/favorites"
+import { useAuth } from "@/components/auth/auth-provider"
 import {
   HoverCard,
   HoverCardContent,
@@ -17,6 +18,8 @@ import {
 
 interface TenderCardProps {
   tender: Tender
+  showFavoriteButton?: boolean
+  onFavoriteChange?: () => void
 }
 
 // Funzione per determinare la variante del badge in base alla natura principale
@@ -68,13 +71,48 @@ function getDeadlineStyle(deadlineDate: string): { color: string; text: string }
   }
 }
 
-export function TenderCard({ tender }: TenderCardProps) {
-  const [favorite, setFavorite] = useState(isFavorite(tender.id))
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange }: TenderCardProps) {
+  const { user } = useAuth()
+  const [favorite, setFavorite] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Carica lo stato iniziale dei preferiti
+  useEffect(() => {
+    const loadFavoriteStatus = async () => {
+      try {
+        const isFav = await isFavorite(tender.id, user)
+        setFavorite(isFav)
+      } catch (error) {
+        console.error('Errore nel caricamento dello stato preferiti:', error)
+      }
+    }
+    
+    loadFavoriteStatus()
+  }, [tender.id, user])
+  
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    toggleFavorite(tender.id)
-    setFavorite(!favorite)
+    
+    if (isLoading) return
+    
+    setIsLoading(true)
+    
+    try {
+      const success = await toggleFavorite(tender.id, user)
+      
+      if (success) {
+        setFavorite(!favorite)
+        // Chiama la callback se fornita
+        if (onFavoriteChange) {
+          onFavoriteChange()
+        }
+      }
+    } catch (error) {
+      console.error('Errore nel toggle del preferito:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
   
   // Determina la natura principale dal campo categoria se non è disponibile direttamente
@@ -114,9 +152,20 @@ export function TenderCard({ tender }: TenderCardProps) {
                 </div>
               </HoverCardContent>
             </HoverCard>
-            <Button variant="ghost" size="icon" onClick={handleFavoriteClick} className="h-8 w-8">
-              <Bookmark size={18} className={favorite ? "fill-red-500 text-red-500" : ""} />
-            </Button>
+            {showFavoriteButton && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleFavoriteClick} 
+                className="h-8 w-8"
+                disabled={isLoading}
+              >
+                <Bookmark 
+                  size={18} 
+                  className={`${favorite ? "fill-red-500 text-red-500" : ""} ${isLoading ? "opacity-50" : ""}`} 
+                />
+              </Button>
+            )}
           </div>
         </div>
         <h3 className="font-bold text-lg line-clamp-2">{tender.stazioneAppaltante.nome}</h3>

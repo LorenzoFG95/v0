@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/utils/supabase/client"
 import type { Tender } from "./types"
 
 // Funzione per convertire i dati dal database al formato dell'applicazione
@@ -496,7 +496,7 @@ export async function getTenders(filters: {
       return acc;
     }, {});
 
-    // Mappiamo i dati includendo le categorie opera
+    // Mappiamo i dati
     const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined;
       const lottoData = lottiMap[gara.id];
@@ -736,6 +736,42 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
       return [];
     }
 
+    // Carica gli enti appaltanti necessari
+    const entiIds = [...new Set(gareData.map(gara => gara.ente_appaltante_id).filter(Boolean))];
+    let entiMap: Record<number, any> = {};
+    
+    if (entiIds.length > 0) {
+      const { data: entiData, error: entiError } = await supabase
+        .from("ente_appaltante")
+        .select("*")
+        .in("id", entiIds);
+      
+      if (!entiError && entiData) {
+        entiMap = entiData.reduce(
+          (acc, ente) => ({ ...acc, [ente.id]: ente }),
+          {} as Record<number, any>
+        );
+      }
+    }
+
+    // Carica i tipi di procedura necessari
+    const tipoProceduraIds = [...new Set(gareData.map(gara => gara.tipo_procedura_id).filter(Boolean))];
+    let tipoProceduraMap: Record<number, any> = {};
+    
+    if (tipoProceduraIds.length > 0) {
+      const { data: tipoProceduraData, error: tipoProceduraError } = await supabase
+        .from("tipo_procedura")
+        .select("*")
+        .in("id", tipoProceduraIds);
+      
+      if (!tipoProceduraError && tipoProceduraData) {
+        tipoProceduraMap = tipoProceduraData.reduce(
+          (acc, tipo) => ({ ...acc, [tipo.id]: tipo }),
+          {} as Record<number, any>
+        );
+      }
+    }
+
     // Mappiamo i dati
     return gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined
@@ -747,6 +783,8 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
     throw error;
   }
 }
+
+
 
 export async function getEntiAppaltanti(): Promise<{ id: string; nome: string }[]> {
   // Verifica che le variabili di ambiente siano configurate
