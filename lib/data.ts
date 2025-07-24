@@ -26,7 +26,7 @@ function mapDatabaseToTender(
     cpv: cpvData ? cpvData.codice : "CPV non specificato",
     categoria: cpvData ? cpvData.descrizione : "Non specificata",
     naturaPrincipale: naturaPrincipaleData ? naturaPrincipaleData.descrizione : undefined,
-    criterioAggiudicazione: criterioAggiudicazioneData ? criterioAggiudicazioneData.descrizione : undefined,
+    criterioAggiudicazione: criterioAggiudicazioneData ? criterioAggiudicazioneData.descrizione : "Offerta economicamente più vantaggiosa",
     procedura: tipoProceduraData ? tipoProceduraData.descrizione : "Procedura aperta", // Usa il valore dal database
     stazioneAppaltante: {
       id: enteData?.id?.toString() || "0",
