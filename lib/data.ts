@@ -1069,3 +1069,97 @@ export async function saveAziendaCategorieOpera(aziendaId: number, categorieIds:
     throw error;
   }
 }
+
+// Funzione per ottenere l'azienda dell'utente corrente
+export async function getUserAzienda(userId: string): Promise<{ id: number; ragione_sociale: string } | null> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from("azienda")
+      .select("id, ragione_sociale")
+      .eq("creata_da", userId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Nessuna azienda trovata
+        return null;
+      }
+      throw new Error(`Errore nel recupero dell'azienda: ${error.message}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Errore nel recupero dell'azienda dell'utente:", error);
+    return null;
+  }
+}
+
+// Funzione per verificare la corrispondenza delle categorie opera
+export async function checkCategorieOperaMatch(
+  tenderCategorieOpera: Array<{ id_categoria: string }>,
+  userId: string
+): Promise<{
+  hasMatch: boolean;
+  matchingCategories: string[];
+  totalUserCategories: number;
+}> {
+  try {
+    // Ottieni l'azienda dell'utente
+    const azienda = await getUserAzienda(userId);
+    if (!azienda) {
+      return {
+        hasMatch: false,
+        matchingCategories: [],
+        totalUserCategories: 0
+      };
+    }
+
+    // Ottieni le categorie opera dell'azienda
+    const aziendaCategorieIds = await getAziendaCategorieOpera(azienda.id);
+    if (aziendaCategorieIds.length === 0) {
+      return {
+        hasMatch: false,
+        matchingCategories: [],
+        totalUserCategories: 0
+      };
+    }
+
+    // Ottieni i dettagli delle categorie dell'azienda per confrontare gli id_categoria
+    const supabase = createClient();
+    const { data: aziendaCategorie, error } = await supabase
+      .from("categoria_opera")
+      .select("id_categoria")
+      .in("id", aziendaCategorieIds.map(id => parseInt(id)))
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle categorie dell'azienda: ${error.message}`);
+    }
+
+    const aziendaIdCategorie = aziendaCategorie?.map(cat => cat.id_categoria) || [];
+    const tenderIdCategorie = tenderCategorieOpera.map(cat => cat.id_categoria);
+
+    // Trova le categorie in comune
+    const matchingCategories = tenderIdCategorie.filter(tenderCat => 
+      aziendaIdCategorie.includes(tenderCat)
+    );
+
+    return {
+      hasMatch: matchingCategories.length > 0,
+      matchingCategories,
+      totalUserCategories: aziendaIdCategorie.length
+    };
+  } catch (error) {
+    console.error("Errore nella verifica delle categorie opera:", error);
+    return {
+      hasMatch: false,
+      matchingCategories: [],
+      totalUserCategories: 0
+    };
+  }
+}
