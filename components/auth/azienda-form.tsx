@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { X } from "lucide-react"
+import { getCategorieOpera, getAziendaCategorieOpera, saveAziendaCategorieOpera } from "@/lib/data"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
 
 interface AziendaFormProps {
   azienda?: any
@@ -29,6 +33,9 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
   const [email, setEmail] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [categorieOpera, setCategorieOpera] = useState<{ id: string; descrizione: string; id_categoria: string }[]>([])
+  const [selectedCategorieOpera, setSelectedCategorieOpera] = useState<string[]>([])
+  const [loadingCategorie, setLoadingCategorie] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -43,8 +50,39 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
       setCap(azienda.cap || "")
       setTelefono(azienda.telefono || "")
       setEmail(azienda.email || "")
+      loadAziendaCategorieOpera(azienda.id)
     }
+    loadCategorieOpera()
   }, [azienda])
+
+  const loadCategorieOpera = async () => {
+    try {
+      setLoadingCategorie(true)
+      const categorie = await getCategorieOpera()
+      setCategorieOpera(categorie)
+    } catch (error) {
+      console.error("Errore nel caricamento delle categorie opera:", error)
+    } finally {
+      setLoadingCategorie(false)
+    }
+  }
+
+  const loadAziendaCategorieOpera = async (aziendaId: number) => {
+    try {
+      const categorieIds = await getAziendaCategorieOpera(aziendaId)
+      setSelectedCategorieOpera(categorieIds)
+    } catch (error) {
+      console.error("Errore nel caricamento delle categorie opera dell'azienda:", error)
+    }
+  }
+
+  const handleCategoriaOperaChange = (categoriaId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategorieOpera(prev => [...prev, categoriaId])
+    } else {
+      setSelectedCategorieOpera(prev => prev.filter(id => id !== categoriaId))
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,6 +124,9 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
       if (result.error) throw result.error
 
+      // Salva le categorie opera selezionate
+      await saveAziendaCategorieOpera(result.data.id as number, selectedCategorieOpera)
+
       onSave(result.data)
     } catch (error: any) {
       setError(error.message || "Si è verificato un errore durante il salvataggio")
@@ -95,13 +136,13 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>{azienda ? "Modifica Azienda" : "Aggiungi Azienda"}</CardTitle>
             <CardDescription>
-              Inserisci i dati della tua azienda
+              Inserisci i dati della tua azienda e seleziona le categorie opera di competenza
             </CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -110,101 +151,146 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Sezione Dati Azienda */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Dati Azienda</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ragione_sociale">Ragione Sociale *</Label>
+                <Input
+                  id="ragione_sociale"
+                  value={ragioneSociale}
+                  onChange={(e) => setRagioneSociale(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="codice_fiscale">Codice Fiscale</Label>
+                <Input
+                  id="codice_fiscale"
+                  value={codiceFiscale}
+                  onChange={(e) => setCodiceFiscale(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="partita_iva">Partita IVA</Label>
+                <Input
+                  id="partita_iva"
+                  value={partitaIva}
+                  onChange={(e) => setPartitaIva(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email_azienda">Email Azienda</Label>
+                <Input
+                  id="email_azienda"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="ragione_sociale">Ragione Sociale *</Label>
+              <Label htmlFor="indirizzo">Indirizzo</Label>
               <Input
-                id="ragione_sociale"
-                value={ragioneSociale}
-                onChange={(e) => setRagioneSociale(e.target.value)}
-                required
+                id="indirizzo"
+                value={indirizzo}
+                onChange={(e) => setIndirizzo(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="codice_fiscale">Codice Fiscale</Label>
-              <Input
-                id="codice_fiscale"
-                value={codiceFiscale}
-                onChange={(e) => setCodiceFiscale(e.target.value)}
-              />
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="citta">Città</Label>
+                <Input
+                  id="citta"
+                  value={citta}
+                  onChange={(e) => setCitta(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="provincia">Provincia</Label>
+                <Input
+                  id="provincia"
+                  value={provincia}
+                  onChange={(e) => setProvincia(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cap">CAP</Label>
+                <Input
+                  id="cap"
+                  value={cap}
+                  onChange={(e) => setCap(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="partita_iva">Partita IVA</Label>
-              <Input
-                id="partita_iva"
-                value={partitaIva}
-                onChange={(e) => setPartitaIva(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email_azienda">Email Azienda</Label>
-              <Input
-                id="email_azienda"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="regione">Regione</Label>
+                <Input
+                  id="regione"
+                  value={regione}
+                  onChange={(e) => setRegione(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="telefono_azienda">Telefono</Label>
+                <Input
+                  id="telefono_azienda"
+                  type="tel"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="indirizzo">Indirizzo</Label>
-            <Input
-              id="indirizzo"
-              value={indirizzo}
-              onChange={(e) => setIndirizzo(e.target.value)}
-            />
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="citta">Città</Label>
-              <Input
-                id="citta"
-                value={citta}
-                onChange={(e) => setCitta(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="provincia">Provincia</Label>
-              <Input
-                id="provincia"
-                value={provincia}
-                onChange={(e) => setProvincia(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cap">CAP</Label>
-              <Input
-                id="cap"
-                value={cap}
-                onChange={(e) => setCap(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="regione">Regione</Label>
-              <Input
-                id="regione"
-                value={regione}
-                onChange={(e) => setRegione(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="telefono_azienda">Telefono</Label>
-              <Input
-                id="telefono_azienda"
-                type="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-              />
-            </div>
+          {/* Sezione Categorie Opera */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Categorie Opera di Competenza</h3>
+            <p className="text-sm text-muted-foreground">
+              Seleziona le categorie opera per le quali la tua azienda è qualificata. Questo aiuterà a identificare i bandi più rilevanti.
+            </p>
+            
+            {loadingCategorie ? (
+              <div className="text-center py-4">Caricamento categorie...</div>
+            ) : (
+              <ScrollArea className="h-64 w-full border rounded-md p-4">
+                <div className="grid grid-cols-1 gap-3">
+                  {categorieOpera.map((categoria) => (
+                    <div key={categoria.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`categoria-${categoria.id}`}
+                        checked={selectedCategorieOpera.includes(categoria.id)}
+                        onCheckedChange={(checked) => 
+                          handleCategoriaOperaChange(categoria.id, checked as boolean)
+                        }
+                      />
+                      <Label 
+                        htmlFor={`categoria-${categoria.id}`}
+                        className="text-sm font-normal cursor-pointer flex-1"
+                      >
+                        <span className="font-medium">{categoria.id_categoria}</span> - {categoria.descrizione}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+            
+            {selectedCategorieOpera.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Categorie selezionate: {selectedCategorieOpera.length}
+              </div>
+            )}
           </div>
 
           {error && (

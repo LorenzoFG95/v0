@@ -1005,3 +1005,67 @@ export async function getTipiProcedura(): Promise<{ id: string; descrizione: str
     return [];
   }
 }
+
+// Funzioni per gestire le categorie opera dell'azienda
+export async function getAziendaCategorieOpera(aziendaId: number): Promise<string[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from("azienda_categoria_opera")
+      .select("categoria_opera_id")
+      .eq("azienda_id", aziendaId)
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle categorie opera dell'azienda: ${error.message}`);
+    }
+
+    return data?.map(item => item.categoria_opera_id.toString()) || [];
+  } catch (error) {
+    console.error("Errore nel recupero delle categorie opera dell'azienda:", error);
+    throw error;
+  }
+}
+
+export async function saveAziendaCategorieOpera(aziendaId: number, categorieIds: string[]): Promise<void> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Prima elimina tutte le categorie esistenti per questa azienda
+    const { error: deleteError } = await supabase
+      .from("azienda_categoria_opera")
+      .delete()
+      .eq("azienda_id", aziendaId)
+
+    if (deleteError) {
+      throw new Error(`Errore nell'eliminazione delle categorie esistenti: ${deleteError.message}`);
+    }
+
+    // Poi inserisce le nuove categorie se ce ne sono
+    if (categorieIds.length > 0) {
+      const insertData = categorieIds.map(categoriaId => ({
+        azienda_id: aziendaId,
+        categoria_opera_id: parseInt(categoriaId)
+      }));
+
+      const { error: insertError } = await supabase
+        .from("azienda_categoria_opera")
+        .insert(insertData)
+
+      if (insertError) {
+        throw new Error(`Errore nell'inserimento delle nuove categorie: ${insertError.message}`);
+      }
+    }
+  } catch (error) {
+    console.error("Errore nel salvataggio delle categorie opera dell'azienda:", error);
+    throw error;
+  }
+}
