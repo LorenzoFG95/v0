@@ -63,3 +63,54 @@ export interface TenderFilters {
   page?: number;
   pageSize?: number;
 }
+
+// Aggiungi questi tipi al file types.ts
+export interface AtiRichiesta {
+  id: number;
+  bando_id: number;
+  azienda_richiedente_id: number;
+  stato: 'attiva' | 'chiusa' | 'scaduta';
+  data_creazione: string;
+  data_scadenza?: string;
+  note_aggiuntive?: string;
+  categorie_offerte: AtiCategoriaOfferta[];
+  categorie_cercate: AtiCategoriaCercata[];
+}
+
+export interface AtiCategoriaOfferta {
+  id: number;
+  ati_richiesta_id: number;
+  categoria_opera_id: number;
+  categoria_opera?: CategoriaOpera; // Per il join
+}
+
+export interface AtiCategoriaCercata {
+  id: number;
+  ati_richiesta_id: number;
+  categoria_opera_id: number;
+  priorita: number;
+  categoria_opera?: CategoriaOpera; // Per il join
+}
+
+export interface AtiContatto {
+  id: number;
+  ati_richiesta_id: number;
+  azienda_contattante_id: number;
+  azienda_contattata_id: number;
+  categoria_opera_id: number;
+  messaggio?: string;
+  data_contatto: string;
+  stato: 'inviato' | 'letto' | 'risposto';
+}
+
+// Tipo per il form di creazione ATI
+export interface AtiRichiestaForm {
+  bando_id: number;
+  categorie_offerte: number[]; // IDs delle categorie opera
+  categorie_cercate: Array<{
+    categoria_opera_id: number;
+    priorita: number;
+  }>;
+  data_scadenza?: string;
+  note_aggiuntive?: string;
+}

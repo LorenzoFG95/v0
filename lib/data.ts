@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/client"
-import type { Tender } from "./types"
+import type { Tender, AtiRichiesta, AtiRichiestaForm } from "./types"
 
 // Funzione per convertire i dati dal database al formato dell'applicazione
 function mapDatabaseToTender(
@@ -1161,5 +1161,282 @@ export async function checkCategorieOperaMatch(
       matchingCategories: [],
       totalUserCategories: 0
     };
+  }
+}
+
+// ==================== FUNZIONI ATI ====================
+
+// Crea una nuova richiesta ATI
+export async function createAtiRichiesta(atiData: AtiRichiestaForm, userId: string): Promise<number> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient();
+
+    // Ottieni l'azienda dell'utente
+    const azienda = await getUserAzienda(userId);
+    if (!azienda) {
+      throw new Error("Nessuna azienda trovata per l'utente");
+    }
+
+    // Verifica se esiste già una richiesta ATI per questo bando
+    const { data: existingRequest, error: checkError } = await supabase
+      .from("ati_richieste")
+      .select("id")
+      .eq("bando_id", atiData.bando_id)
+      .eq("azienda_richiedente_id", azienda.id)
+      .eq("stato", "attiva")
+      .single();
+
+    if (existingRequest) {
+      throw new Error("Esiste già una richiesta ATI attiva per questo bando");
+    }
+
+    // Ottieni la data di scadenza del bando
+    const { data: bandoData, error: bandoError } = await supabase
+      .from("gara")
+      .select("scadenza")
+      .eq("id", atiData.bando_id)
+      .single();
+
+    if (bandoError) {
+      throw new Error(`Errore nel recupero del bando: ${bandoError.message}`);
+    }
+
+    // Crea la richiesta ATI
+    const { data: atiRichiesta, error: atiError } = await supabase
+      .from("ati_richieste")
+      .insert({
+        bando_id: atiData.bando_id,
+        azienda_richiedente_id: azienda.id,
+        data_scadenza: bandoData.scadenza, // Scade con il bando
+        note_aggiuntive: atiData.note_aggiuntive
+      })
+      .select("id")
+      .single();
+
+    if (atiError) {
+      throw new Error(`Errore nella creazione della richiesta ATI: ${atiError.message}`);
+    }
+
+    const atiRichiestaId = atiRichiesta.id;
+
+    // Inserisci le categorie offerte
+    if (atiData.categorie_offerte.length > 0) {
+      const categorieOfferte = atiData.categorie_offerte.map(categoriaId => ({
+        ati_richiesta_id: atiRichiestaId,
+        categoria_opera_id: categoriaId
+      }));
+
+      const { error: offerteError } = await supabase
+        .from("ati_categorie_offerte")
+        .insert(categorieOfferte);
+
+      if (offerteError) {
+        throw new Error(`Errore nell'inserimento delle categorie offerte: ${offerteError.message}`);
+      }
+    }
+
+    // Inserisci le categorie cercate
+    if (atiData.categorie_cercate.length > 0) {
+      const categorieCercate = atiData.categorie_cercate.map(categoria => ({
+        ati_richiesta_id: atiRichiestaId,
+        categoria_opera_id: categoria.categoria_opera_id,
+        priorita: categoria.priorita
+      }));
+
+      const { error: cercateError } = await supabase
+        .from("ati_categorie_cercate")
+        .insert(categorieCercate);
+
+      if (cercateError) {
+        throw new Error(`Errore nell'inserimento delle categorie cercate: ${cercateError.message}`);
+      }
+    }
+
+    return atiRichiestaId;
+  } catch (error) {
+    console.error("Errore nella creazione della richiesta ATI:", error);
+    throw error;
+  }
+}
+
+// Ottieni tutte le richieste ATI per un bando
+export async function getAtiRichiesteByBando(bandoId: number): Promise<AtiRichiesta[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient();
+
+    const { data: richieste, error } = await supabase
+      .from("ati_richieste")
+      .select(`
+        *,
+        azienda:azienda_richiedente_id(
+          id,
+          ragione_sociale,
+          citta,
+          regione
+        )
+      `)
+      .eq("bando_id", bandoId)
+      .eq("stato", "attiva")
+      .order("data_creazione", { ascending: false });
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle richieste ATI: ${error.message}`);
+    }
+
+    // Per ogni richiesta, ottieni le categorie offerte e cercate
+    const richiesteComplete = await Promise.all(
+      (richieste || []).map(async (richiesta) => {
+        // Categorie offerte
+        const { data: categorieOfferte, error: offerteError } = await supabase
+          .from("ati_categorie_offerte")
+          .select(`
+            *,
+            categoria_opera:categoria_opera_id(
+              id,
+              id_categoria,
+              descrizione
+            )
+          `)
+          .eq("ati_richiesta_id", richiesta.id);
+
+        // Categorie cercate
+        const { data: categorieCercate, error: cercateError } = await supabase
+          .from("ati_categorie_cercate")
+          .select(`
+            *,
+            categoria_opera:categoria_opera_id(
+              id,
+              id_categoria,
+              descrizione
+            )
+          `)
+          .eq("ati_richiesta_id", richiesta.id)
+          .order("priorita", { ascending: false });
+
+        return {
+          ...richiesta,
+          categorie_offerte: categorieOfferte || [],
+          categorie_cercate: categorieCercate || []
+        };
+      })
+    );
+
+    return richiesteComplete;
+  } catch (error) {
+    console.error("Errore nel recupero delle richieste ATI per bando:", error);
+    return [];
+  }
+}
+
+// Ottieni le richieste ATI di un'azienda
+export async function getAtiRichiesteByAzienda(userId: string): Promise<AtiRichiesta[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient();
+
+    // Ottieni l'azienda dell'utente
+    const azienda = await getUserAzienda(userId);
+    if (!azienda) {
+      return [];
+    }
+
+    const { data: richieste, error } = await supabase
+      .from("ati_richieste")
+      .select(`
+        *,
+        gara:bando_id(
+          id,
+          descrizione,
+          scadenza,
+          cig
+        )
+      `)
+      .eq("azienda_richiedente_id", azienda.id)
+      .order("data_creazione", { ascending: false });
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle richieste ATI dell'azienda: ${error.message}`);
+    }
+
+    return richieste || [];
+  } catch (error) {
+    console.error("Errore nel recupero delle richieste ATI dell'azienda:", error);
+    return [];
+  }
+}
+
+// Conta le offerte ATI per categoria in un bando
+export async function getAtiOfferteCountByCategoria(bandoId: number): Promise<Record<string, number>> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient();
+
+    const { data, error } = await supabase
+      .from("ati_categorie_offerte")
+      .select(`
+        categoria_opera_id,
+        categoria_opera:categoria_opera_id(
+          id_categoria
+        ),
+        ati_richiesta:ati_richiesta_id(
+          bando_id,
+          stato
+        )
+      `)
+      .eq("ati_richiesta.bando_id", bandoId)
+      .eq("ati_richiesta.stato", "attiva");
+
+    if (error) {
+      throw new Error(`Errore nel conteggio delle offerte ATI: ${error.message}`);
+    }
+
+    // Conta per id_categoria
+    const counts: Record<string, number> = {};
+    (data || []).forEach(item => {
+      const idCategoria = item.categoria_opera?.id_categoria;
+      if (idCategoria) {
+        counts[idCategoria] = (counts[idCategoria] || 0) + 1;
+      }
+    });
+
+    return counts;
+  } catch (error) {
+    console.error("Errore nel conteggio delle offerte ATI per categoria:", error);
+    return {};
+  }
+}
+
+// Verifica se l'utente ha già una richiesta ATI per un bando
+export async function hasAtiRichiestaForBando(bandoId: number, userId: string): Promise<boolean> {
+  try {
+    const azienda = await getUserAzienda(userId);
+    if (!azienda) return false;
+
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("ati_richieste")
+      .select("id")
+      .eq("bando_id", bandoId)
+      .eq("azienda_richiedente_id", azienda.id)
+      .eq("stato", "attiva")
+      .single();
+
+    return !!data;
+  } catch (error) {
+    return false;
   }
 }

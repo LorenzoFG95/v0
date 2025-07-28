@@ -2,186 +2,39 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { Tender } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { FavoriteButton } from "@/components/favorite-button";
-import { checkCategorieOperaMatch } from "@/lib/data";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import {
   Building,
-  Calendar,
   Euro,
   FileText,
-  Users,
-  Clock,
   Hash,
-  Link,
   MapPin,
-  CheckCircle,
-  Target,
+  Handshake,
 } from "lucide-react";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
-// Funzione per determinare la variante del badge in base alla natura principale
-function getNaturaBadgeVariant(natura?: string): "lavori" | "forniture" | "servizi" | "outline" {
-  if (!natura) return "outline"
-  
-  switch (natura.toLowerCase()) {
-    case "lavori":
-      return "lavori" // bordo blu
-    case "forniture":
-      return "forniture" // bordo grigio
-    case "servizi":
-      return "servizi" // bordo ambra
-    default:
-      return "outline"
-  }
-}
-
-// Funzione per determinare lo stile della scadenza in base alla data
-function getDeadlineStyle(deadlineDate: string): { color: string; text: string } {
-  const today = new Date();
-  const deadline = new Date(deadlineDate);
-  const oneWeek = 7 * 24 * 60 * 60 * 1000; // Una settimana in millisecondi
-  
-  // Rimuovi l'orario per confrontare solo le date
-  today.setHours(0, 0, 0, 0);
-  deadline.setHours(0, 0, 0, 0);
-  
-  const timeDiff = deadline.getTime() - today.getTime();
-  
-  if (timeDiff < 0) {
-    // Scadenza passata
-    return { 
-      color: "text-red-600 bg-red-50", 
-      text: "Scaduta il" 
-    };
-  } else if (timeDiff <= oneWeek) {
-    // Scadenza entro una settimana
-    return { 
-      color: "text-yellow-600 bg-yellow-50", 
-      text: "Scade" 
-    };
-  } else {
-    // Scadenza oltre una settimana (default)
-    return { 
-      color: "text-green-600 bg-green-50", 
-      text: "Scade" 
-    };
-  }
-}
+// Import dei componenti estratti
+import { AtiOfferteIndicator } from "@/components/tender/ati-offerte-indicator";
+import { CategorieOperaMatchIndicator } from "@/components/tender/categorie-opera-match-indicator";
+import { AtiRequestModal } from "@/components/tender/ati-request-modal";
+import { getNaturaBadgeVariant, getDeadlineStyle } from "@/components/tender/utils";
 
 interface TenderDetailsProps {
   tender: Tender;
 }
 
-// Componente per l'indicatore di corrispondenza
-function CategorieOperaMatchIndicator({ 
-  tender, 
-  userId 
-}: { 
-  tender: Tender; 
-  userId: string | null; 
-}) {
-  const [matchData, setMatchData] = useState<{
-    hasMatch: boolean;
-    matchingCategories: string[];
-    totalUserCategories: number;
-    loading: boolean;
-  }>({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: true });
-
-  useEffect(() => {
-    async function checkMatch() {
-      if (!userId || !tender.categorieOpera || tender.categorieOpera.length === 0) {
-        setMatchData({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: false });
-        return;
-      }
-
-      try {
-        const result = await checkCategorieOperaMatch(tender.categorieOpera, userId);
-        setMatchData({ ...result, loading: false });
-      } catch (error) {
-        console.error("Errore nella verifica delle categorie:", error);
-        setMatchData({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: false });
-      }
-    }
-
-    checkMatch();
-  }, [tender.categorieOpera, userId]);
-
-  if (matchData.loading) {
-    return (
-      <div className="animate-pulse bg-gray-200 h-8 rounded-md"></div>
-    );
-  }
-
-  if (!userId || matchData.totalUserCategories === 0) {
-    return null;
-  }
-
-  if (!matchData.hasMatch) {
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <div className="flex items-center">
-          <Target className="text-gray-400 mr-2" size={18} />
-          <div className="text-sm text-gray-600">
-            Nessuna corrispondenza con le tue categorie opera
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <CheckCircle className="text-green-600 mr-2" size={18} />
-          <div>
-            <div className="text-sm font-medium text-green-800">
-              Corrispondenza trovata!
-            </div>
-            <div className="text-xs text-green-600">
-              {matchData.matchingCategories.length} su {tender.categorieOpera!.length} categorie corrispondono
-            </div>
-          </div>
-        </div>
-        <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-          Match
-        </Badge>
-      </div>
-      
-      {matchData.matchingCategories.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-green-200">
-          <div className="text-xs text-green-700 font-medium mb-1">
-            Categorie in comune:
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {matchData.matchingCategories.map((categoria, index) => (
-              <Badge key={index} variant="outline" className="text-xs border-green-300 text-green-700">
-                {categoria}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function TenderDetails({ tender }: TenderDetailsProps) {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAtiModalOpen, setIsAtiModalOpen] = useState(false);
   
   useEffect(() => {
     async function getUser() {
@@ -194,6 +47,11 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
 
   // Determina lo stile della scadenza
   const deadlineStyle = getDeadlineStyle(tender.scadenza);
+  
+  // Funzione per gestire il click del bottone ATI
+  const handleAtiRequest = () => {
+    setIsAtiModalOpen(true);
+  };
   
   return (
     <div className="space-y-6">
@@ -223,6 +81,20 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 </div>
               </HoverCardContent>
             </HoverCard>
+            
+            {/* Bottone ATI - visibile solo per bandi di lavori e utenti autenticati */}
+            {userId && tender.naturaPrincipale?.toLowerCase() === "lavori" && (
+              <Button
+                onClick={handleAtiRequest}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+              >
+                <Handshake size={16} />
+                Richiedi ATI
+              </Button>
+            )}
+            
             <FavoriteButton tenderId={tender.id} />
           </div>
         </div>
@@ -237,7 +109,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           </div>
         )}
 
-        {/* ... existing code ... */}
+        {/* Informazioni principali */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="flex items-center">
             <div className="bg-blue-100 p-2 rounded-full">
@@ -246,7 +118,6 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             <div className="ml-3">
               <div className="text-sm text-blue-600 font-medium">Codice Identificativo Gara</div>
               <div className="font-medium">{tender.cig}</div>
-
             </div>
           </div>
           <div className="flex items-center">
@@ -256,29 +127,14 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             <div className="ml-3">
               <div className="text-sm text-gray-500">Valore</div>
               <div className="font-medium text-yellow-600">{formatCurrency(tender.valore)}</div>
-              {/* Aggiungi l'importo sicurezza */}
-                {(tender.importoSicurezza !== undefined && tender.importoSicurezza > 0) ? (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Oneri sicurezza: {formatCurrency(tender.importoSicurezza)}
-                  </div>
-                ) : null}
+              {(tender.importoSicurezza !== undefined && tender.importoSicurezza > 0) ? (
+                <div className="text-xs text-gray-500 mt-1">
+                  Oneri sicurezza: {formatCurrency(tender.importoSicurezza)}
+                </div>
+              ) : null}
             </div>
           </div>
 
-          {/* <div className="flex items-center">
-            <div className="bg-green-100 p-2 rounded-full">
-              <Calendar className="text-green-600" size={20} />
-            </div>
-            <div className="ml-3">
-              <div className="text-sm text-gray-500">Pubblicazione</div>
-              <div className="font-medium">
-                {formatDate(tender.pubblicazione)}
-              </div>
-            </div>
-          </div> */}
-
-
-          {/* Sostituiamo partecipanti con criterio di aggiudicazione */}
           {tender.criterioAggiudicazione && (
             <div className="flex items-center">
               <div className="bg-purple-100 p-2 rounded-full">
@@ -292,32 +148,33 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           )}
         </div>
 
-                {/* Versione semplificata del link ai documenti di gara */}
-                {tender.documentiDiGaraLink && (
-                  <div className="mt-6 p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="text-blue-600 mr-2" size={18} />
-                        <div className="text-sm font-medium text-blue-600">
-                          Documenti di Gara
-                        </div>
-                      </div>
-                      <a 
-                        href={tender.documentiDiGaraLink} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm rounded flex items-center transition-colors duration-200"
-                      >
-                        <FileText className="mr-1" size={14} />
-                        Scarica
-                      </a>
-                    </div>
-                  </div>
-                )}
+        {/* Link ai documenti di gara */}
+        {tender.documentiDiGaraLink && (
+          <div className="mt-6 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <FileText className="text-blue-600 mr-2" size={18} />
+                <div className="text-sm font-medium text-blue-600">
+                  Documenti di Gara
+                </div>
+              </div>
+              <a 
+                href={tender.documentiDiGaraLink} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm rounded flex items-center transition-colors duration-200"
+              >
+                <FileText className="mr-1" size={14} />
+                Scarica
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Modifica qui: cambia il layout per avere 3 colonne in desktop */}
+      {/* Layout a 3 colonne */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Stazione Appaltante */}
         <Card>
           <CardHeader className="pb-2">
             <h2 className="text-lg font-medium flex items-center">
@@ -390,6 +247,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           </CardContent>
         </Card>
 
+        {/* Classificazione */}
         <Card>
           <CardHeader className="pb-2">
             <h2 className="text-lg font-medium flex items-center">
@@ -407,33 +265,41 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                   <div className="space-y-2">
                     {tender.categorieOpera.map((categoria, index) => (
                       <div key={index} className="border rounded-md p-2">
-                        <div className="flex items-center">
-                          <Badge
-                            variant={
-                              categoria.cod_tipo_categoria === "P"
-                                ? "default"
-                                : "secondary"
-                            }
-                            className="mr-2"
-                          >
-                            {categoria.descrizione_tipo_categoria || 
-                              (categoria.cod_tipo_categoria === "P"
-                                ? "Prevalente"
-                                : "Scorporabile")}
-                          </Badge>
-                          <HoverCard>
-                            <HoverCardTrigger asChild>
-                              <div className="font-medium cursor-help">
-                                {categoria.id_categoria}
-                              </div>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-80">
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-semibold">Dettagli Categoria</h4>
-                                <p className="text-sm">{categoria.descrizione}</p>
-                              </div>
-                            </HoverCardContent>
-                          </HoverCard>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Badge
+                              variant={
+                                categoria.cod_tipo_categoria === "P"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className="mr-2"
+                            >
+                              {categoria.descrizione_tipo_categoria || 
+                                (categoria.cod_tipo_categoria === "P"
+                                  ? "Prevalente"
+                                  : "Scorporabile")}
+                            </Badge>
+                            <HoverCard>
+                              <HoverCardTrigger asChild>
+                                <div className="font-medium cursor-help">
+                                  {categoria.id_categoria}
+                                </div>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-80">
+                                <div className="space-y-1">
+                                  <h4 className="text-sm font-semibold">Dettagli Categoria</h4>
+                                  <p className="text-sm">{categoria.descrizione}</p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                          </div>
+                          
+                          {/* Badge ATI - mostra solo se ci sono offerte */}
+                          <AtiOfferteIndicator 
+                            categoria={categoria} 
+                            bandoId={tender.id} 
+                          />
                         </div>
                       </div>
                     ))}
@@ -455,17 +321,11 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                 </div>
                 <div>{tender.categoria}</div>
               </div>
-
-              {/* Rimosso il blocco "Procedura" */}
-
-              {/* Rimosso il blocco "Tipo di gara" */}
-
-              
             </div>
           </CardContent>
         </Card>
 
-        {/* Modifica qui: la timeline ora occupa solo 1/3 dello spazio in desktop */}
+        {/* Timeline */}
         <Card>
           <CardHeader className="pb-2">
             <h2 className="text-lg font-medium">Timeline</h2>
@@ -499,6 +359,16 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal ATI */}
+      {userId && (
+        <AtiRequestModal
+          tender={tender}
+          userId={userId}
+          isOpen={isAtiModalOpen}
+          onClose={() => setIsAtiModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
