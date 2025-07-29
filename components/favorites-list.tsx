@@ -12,13 +12,14 @@ import { AlertCircle, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface FavoritesListProps {
+  initialFavorites?: Tender[]
   onFavoriteRemoved?: () => void
 }
 
-export function FavoritesList({ onFavoriteRemoved }: FavoritesListProps) {
-  const { user, loading: authLoading } = useAuth()
-  const [favorites, setFavorites] = useState<Tender[]>([])
-  const [loading, setLoading] = useState(true)
+export function FavoritesList({ initialFavorites = [], onFavoriteRemoved }: FavoritesListProps) {
+  const { user, loading: authLoading, favorites: contextFavorites } = useAuth()
+  const [favorites, setFavorites] = useState<Tender[]>(initialFavorites)
+  const [loading, setLoading] = useState(false) // ✅ Non loading se abbiamo dati iniziali
   const [error, setError] = useState<string | null>(null)
   const [favoriteIds, setFavoriteIds] = useState<string[]>([])
 
@@ -53,7 +54,13 @@ export function FavoritesList({ onFavoriteRemoved }: FavoritesListProps) {
   }
 
   // Carica i preferiti quando il componente si monta o cambia l'utente
+  // ✅ Usa i dati iniziali se disponibili
   useEffect(() => {
+    if (initialFavorites.length > 0) {
+      setFavorites(initialFavorites)
+      return
+    }
+    // Solo se non abbiamo dati iniziali, carica dal server
     loadFavorites()
   }, [user, authLoading])
 

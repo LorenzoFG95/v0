@@ -27,6 +27,7 @@ export function Header() {
   return (
     <header className="border-b bg-white">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        {/* ✅ Logo sempre visibile */}
         <Link href="/" className="flex items-center gap-2">
           <div className="bg-blue-600 text-white p-1 rounded">
             <FileText size={20} />
@@ -35,6 +36,7 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-2">
+          {/* ✅ Link pubblici sempre visibili */}
           <Button variant={pathname === "/" ? "secondary" : "ghost"} size="sm" asChild>
             <Link href="/" className="flex items-center gap-1">
               <Home size={16} />
@@ -49,12 +51,8 @@ export function Header() {
             </Link>
           </Button>
 
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Loader2 size={16} className="animate-spin" />
-              <span>Caricamento...</span>
-            </div>
-          ) : user ? (
+          {/* ✅ Mostra direttamente i pulsanti appropriati */}
+          {user ? (
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" className="flex items-center gap-1" asChild>
                 <Link href="/profile">

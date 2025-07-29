@@ -1,7 +1,14 @@
-import { Header } from "@/components/header"
-import { ProfileForm } from "@/components/auth/profile-form"
+import { Header } from '@/components/header'
+import { ProfileForm } from '@/components/auth/profile-form'
+import { redirect } from 'next/navigation'
+import { isAuthenticated } from '@/lib/server-auth'
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  // ✅ Verifica solo l'autenticazione, i dati sono già nel contesto
+  if (!(await isAuthenticated())) {
+    redirect('/auth/login')
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
@@ -12,6 +19,7 @@ export default function ProfilePage() {
             Gestisci le tue informazioni personali e aziendali
           </p>
         </div>
+        {/* ✅ I dati sono già disponibili nel contesto */}
         <ProfileForm />
       </div>
     </main>

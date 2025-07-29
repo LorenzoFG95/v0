@@ -1,226 +1,127 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
-import { createClient } from "@/utils/supabase/client"
-import { User } from "@supabase/supabase-js"
-import { useRouter } from "next/navigation"
-import { syncFavoritesToDatabase, clearLocalFavorites } from "@/lib/favorites"
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createClient } from '@/utils/supabase/client'
+import type { CompleteUserData } from '@/lib/server-auth'
 
-type AuthContextType = {
-  user: User | null
+interface AuthContextType {
+  user: any | null
   profile: any | null
+  azienda: any | null
+  favorites: string[]
+  isAuthenticated: boolean
   loading: boolean
   signOut: () => Promise<void>
+  updateProfile: (profile: any) => void
+  updateAzienda: (azienda: any) => void
+  addFavorite: (tenderId: string) => void
+  removeFavorite: (tenderId: string) => void
+  setUserData: (userData: CompleteUserData) => void
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  loading: true,
-  signOut: async () => {},
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const useAuth = () => useContext(AuthContext)
+interface AuthProviderProps {
+  children: ReactNode
+  initialUserData?: CompleteUserData | null
+}
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<any | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [supabase] = useState(() => createClient())
-  const router = useRouter()
+export function AuthProvider({ children, initialUserData }: AuthProviderProps) {
+  const [user, setUser] = useState<any | null>(initialUserData?.user || null)
+  const [profile, setProfile] = useState<any | null>(initialUserData?.profile || null)
+  const [azienda, setAzienda] = useState<any | null>(initialUserData?.azienda || null)
+  const [favorites, setFavorites] = useState<string[]>(initialUserData?.favorites || [])
+  const [loading, setLoading] = useState(!initialUserData)
+  
+  const supabase = createClient()
 
-  // Timeout di sicurezza per evitare il caricamento infinito
+  // ✅ Usa i dati iniziali se disponibili, altrimenti carica solo se necessario
   useEffect(() => {
-    const safetyTimeout = setTimeout(() => {
+    if (initialUserData) {
+      // Dati già disponibili dal server, nessun loading
+      setUser(initialUserData.user)
+      setProfile(initialUserData.profile)
+      setAzienda(initialUserData.azienda)
+      setFavorites(initialUserData.favorites)
       setLoading(false)
-    }, 10000) // 10 secondi di timeout
-
-    return () => clearTimeout(safetyTimeout)
-  }, [])
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function getUser() {
-      try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-        
-        if (!isMounted) return
-        
-        if (sessionError) {
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-          return
-        }
-        
-        const user = sessionData?.session?.user || null
-        setUser(user)
-        
-        if (user) {
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from('utente')
-              .select('*')
-              .eq('id', user.id)
-              .single()
-
-            if (!isMounted) return
-
-            if (profileError) {
-              setProfile(null)
-            } else {
-              setProfile(profile)
-            }
-            
-            // Sincronizza i preferiti al login iniziale
-            try {
-              await syncFavoritesToDatabase(user)
-              console.log('✅ Preferiti sincronizzati al login iniziale')
-            } catch (syncError) {
-              console.error('❌ Errore nella sincronizzazione dei preferiti al login:', syncError)
-            }
-          } catch (profileError) {
-            if (isMounted) setProfile(null)
-          } finally {
-            if (isMounted) setLoading(false)
-          }
-        } else {
-          setProfile(null)
-          setLoading(false)
-        }
-      } catch (error) {
-        if (isMounted) {
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        }
-      }
+      return
     }
 
-    getUser()
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!isMounted) return
-        
-        const currentUser = session?.user ?? null
-        const previousUser = user
-        setUser(currentUser)
-
-        if (currentUser) {
-          try {
-            const { data: profile, error } = await supabase
-              .from('utente')
-              .select('*')
-              .eq('id', currentUser.id)
-              .single()
-
-            if (!isMounted) return
-
-            if (error) {
-              setProfile(null)
-            } else {
-              setProfile(profile)
-            }
-            
-            // Sincronizza i preferiti solo se è un nuovo login (non era loggato prima)
-            if (!previousUser && event === 'SIGNED_IN') {
-              try {
-                await syncFavoritesToDatabase(currentUser)
-                console.log('✅ Preferiti sincronizzati al nuovo login')
-              } catch (syncError) {
-                console.error('❌ Errore nella sincronizzazione dei preferiti:', syncError)
-              }
-            }
-          } catch (error) {
-            if (isMounted) setProfile(null)
-          }
-        } else {
-          setProfile(null)
-          
-          // Se l'utente si disconnette, non cancellare i preferiti locali
-          // (potrebbero essere utili per un futuro login)
-        }
-
-        if (isMounted) {
-          setLoading(false)
-        }
+    // Solo se non abbiamo dati iniziali, controlla l'autenticazione
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
+        setAzienda(null)
+        setFavorites([])
+        setLoading(false)
+      } else if (event === 'SIGNED_IN' && session?.user && !user) {
+        // Solo se non abbiamo già i dati
+        setLoading(true)
+        // Qui potresti fare una chiamata per recuperare i dati completi
+        // Ma idealmente dovrebbero arrivare dal server
+        setUser(session.user)
+        setLoading(false)
       }
-    )
+    })
 
-    return () => {
-      isMounted = false
-      authListener?.subscription.unsubscribe()
-    }
-  }, [])
+    return () => subscription.unsubscribe()
+  }, [initialUserData, user])
 
   const signOut = async () => {
-    try {
-      // Aggiungiamo un timeout per evitare che si blocchi indefinitamente
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout durante logout')), 5000)
-      )
-      
-      const logoutPromise = supabase.auth.signOut()
-      
-      const { error } = await Promise.race([logoutPromise, timeoutPromise]) as any
-      
-      // Pulizia completa indipendentemente dal risultato
-      setUser(null)
-      setProfile(null)
-      
-      // Pulizia manuale del localStorage per rimuovere completamente la sessione
-      if (typeof window !== 'undefined') {
-        // Rimuovi tutte le chiavi relative a Supabase
-        const keysToRemove = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && key.startsWith('sb-')) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key))
-        
-        // NON cancellare i preferiti locali al logout
-        // Gli utenti potrebbero voler mantenere i loro preferiti
-        // anche quando non sono loggati
-      }
-      
-      router.push('/auth/login')
-      
-      // Forza un refresh completo della pagina per assicurarsi che tutto sia pulito
-      setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/auth/login'
-        }
-      }, 100)
-      
-    } catch (error) {
-      console.error('❌ Eccezione durante logout:', error)
-      // Anche in caso di errore, proviamo a pulire tutto
-      setUser(null)
-      setProfile(null)
-      
-      if (typeof window !== 'undefined') {
-        // Pulizia localStorage anche in caso di errore
-        const keysToRemove = []
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && key.startsWith('sb-')) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key))
-        
-        window.location.href = '/auth/login'
-      }
-    }
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+    setAzienda(null)
+    setFavorites([])
   }
 
-  return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  const updateProfile = (newProfile: any) => {
+    setProfile(newProfile)
+  }
+
+  const updateAzienda = (newAzienda: any) => {
+    setAzienda(newAzienda)
+  }
+
+  const addFavorite = (tenderId: string) => {
+    setFavorites(prev => [...prev, tenderId])
+  }
+
+  const removeFavorite = (tenderId: string) => {
+    setFavorites(prev => prev.filter(id => id !== tenderId))
+  }
+
+  const setUserData = (userData: CompleteUserData) => {
+    setUser(userData.user)
+    setProfile(userData.profile)
+    setAzienda(userData.azienda)
+    setFavorites(userData.favorites)
+    setLoading(false)
+  }
+
+  const value = {
+    user,
+    profile,
+    azienda,
+    favorites,
+    isAuthenticated: !!user,
+    loading,
+    signOut,
+    updateProfile,
+    updateAzienda,
+    addFavorite,
+    removeFavorite,
+    setUserData
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }
