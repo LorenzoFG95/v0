@@ -5,9 +5,7 @@ import { isAuthenticated } from '@/lib/server-auth'
 
 export default async function ProfilePage() {
   // ✅ Verifica solo l'autenticazione, i dati sono già nel contesto
-  if (!(await isAuthenticated())) {
-    redirect('/auth/login')
-  }
+  await isAuthenticated() && redirect('/preferiti')
 
   return (
     <main className="min-h-screen bg-gray-50">
