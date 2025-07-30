@@ -195,48 +195,6 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Categorie Offerte */}
-          <div>
-            <Label className="text-base font-medium">Categorie che la tua azienda può offrire</Label>
-            <p className="text-sm text-gray-600 mb-3">
-              Seleziona le categorie opera per cui la tua azienda ha le qualificazioni necessarie
-            </p>
-            
-            {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-md p-3">
-                {tender.categorieOpera.map((categoria) => (
-                  <div key={`offerta-${categoria.id_categoria}`} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`offerta-${categoria.id_categoria}`}
-                      checked={formData.categorieOfferte.includes(categoria.id_categoria)}
-                      onCheckedChange={(checked) => 
-                        handleCategoriaOffertaToggle(categoria, checked as boolean)
-                      }
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor={`offerta-${categoria.id_categoria}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {categoria.id_categoria}
-                      </label>
-                      <p className="text-xs text-gray-600">
-                        {categoria.descrizione}
-                      </p>
-                      <Badge
-                        variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
-                        className="w-fit text-xs"
-                      >
-                        {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic">Nessuna categoria opera disponibile per questo bando.</p>
-            )}
-          </div>
 
           {/* Categorie Cercate */}
           <div>
@@ -259,6 +217,49 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
                     <div className="grid gap-1.5 leading-none">
                       <label
                         htmlFor={`cercata-${categoria.id_categoria}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {categoria.id_categoria}
+                      </label>
+                      <p className="text-xs text-gray-600">
+                        {categoria.descrizione}
+                      </p>
+                      <Badge
+                        variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                        className="w-fit text-xs"
+                      >
+                        {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic">Nessuna categoria opera disponibile per questo bando.</p>
+            )}
+          </div>
+
+          {/* Categorie Offerte */}
+          <div>
+            <Label className="text-base font-medium">Categorie che la tua azienda può offrire</Label>
+            <p className="text-sm text-gray-600 mb-3">
+              Seleziona le categorie opera per cui la tua azienda ha le qualificazioni necessarie
+            </p>
+            
+            {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-md p-3">
+                {tender.categorieOpera.map((categoria) => (
+                  <div key={`offerta-${categoria.id_categoria}`} className="flex items-start space-x-2">
+                    <Checkbox
+                      id={`offerta-${categoria.id_categoria}`}
+                      checked={formData.categorieOfferte.includes(categoria.id_categoria)}
+                      onCheckedChange={(checked) => 
+                        handleCategoriaOffertaToggle(categoria, checked as boolean)
+                      }
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor={`offerta-${categoria.id_categoria}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                       >
                         {categoria.id_categoria}
