@@ -78,20 +78,14 @@ export interface AtiRichiesta {
 }
 
 export interface AtiCategoriaOfferta {
-  id: number;
-  ati_richiesta_id: number;
   categoria_opera_id: number;
-  classificazione?: string; // Aggiunto campo classificazione
-  categoria_opera?: CategoriaOpera; // Per il join
+  classificazione: string;
 }
 
 export interface AtiCategoriaCercata {
-  id: number;
-  ati_richiesta_id: number;
   categoria_opera_id: number;
   priorita: number;
-  classificazione?: string; // Aggiunto campo classificazione
-  categoria_opera?: CategoriaOpera; // Per il join
+  classificazione: string;
 }
 
 // Aggiornare anche il form

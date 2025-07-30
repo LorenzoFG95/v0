@@ -95,8 +95,8 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
     setFormData(prev => ({
       ...prev,
       categorieOfferte: checked
-        ? [...prev.categorieOfferte, { categoriaId: categoria.id_categoria, classificazione: 'I' }]
-        : prev.categorieOfferte.filter(item => item.categoriaId !== categoria.id_categoria)
+        ? [...prev.categorieOfferte, { categoriaId: categoria.id, classificazione: 'I' }] // Usa categoria.id invece di categoria.id_categoria
+        : prev.categorieOfferte.filter(item => item.categoriaId !== categoria.id)
     }));
   };
 
@@ -115,8 +115,8 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
     setFormData(prev => ({
       ...prev,
       categorieCercate: checked
-        ? [...prev.categorieCercate, { categoriaId: categoria.id_categoria, classificazione: 'I' }]
-        : prev.categorieCercate.filter(item => item.categoriaId !== categoria.id_categoria)
+        ? [...prev.categorieCercate, { categoriaId: categoria.id, classificazione: 'I' }] // Usa categoria.id invece di categoria.id_categoria
+        : prev.categorieCercate.filter(item => item.categoriaId !== categoria.id)
     }));
   };
 
@@ -157,13 +157,13 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
       const atiData = {
         bando_id: parseInt(tender.id),
         categorie_offerte: formData.categorieOfferte.map(item => ({
-          categoria_opera_id: parseInt(item.categoriaId),
+          categoria_opera_id: parseInt(item.categoriaId), // Ora categoriaId è l'ID numerico
           classificazione: item.classificazione
         })),
         categorie_cercate: formData.categorieCercate.map((item, index) => ({
-          categoria_opera_id: parseInt(item.categoriaId),
+          categoria_opera_id: parseInt(item.categoriaId), // Ora categoriaId è l'ID numerico
           priorita: index + 1,
-          classificazione: item.classificazione // Aggiunto
+          classificazione: item.classificazione
         })),
         note_aggiuntive: formData.note
       };
@@ -250,14 +250,14 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
             {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 max-h-64 overflow-y-auto border rounded-md p-3">
                 {tender.categorieOpera.map((categoria) => {
-                  const isSelected = formData.categorieCercate.some(item => item.categoriaId === categoria.id_categoria);
-                  const selectedItem = formData.categorieCercate.find(item => item.categoriaId === categoria.id_categoria);
+                  const isSelected = formData.categorieCercate.some(item => item.categoriaId === categoria.id); // Usa categoria.id
+                  const selectedItem = formData.categorieCercate.find(item => item.categoriaId === categoria.id); // Usa categoria.id
 
                   return (
-                    <div key={`cercata-${categoria.id_categoria}`} className="space-y-2">
+                    <div key={`cercata-${categoria.id}`} className="space-y-2"> {/* Usa categoria.id */}
                       <div className="flex items-start space-x-2">
                         <Checkbox
-                          id={`cercata-${categoria.id_categoria}`}
+                          id={`cercata-${categoria.id}`} 
                           checked={isSelected}
                           onCheckedChange={(checked) =>
                             handleCategoriaCercataToggle(categoria, checked as boolean)
@@ -265,10 +265,10 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
                         />
                         <div className="grid gap-1.5 leading-none flex-1">
                           <label
-                            htmlFor={`cercata-${categoria.id_categoria}`}
+                            htmlFor={`cercata-${categoria.id}`} 
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                           >
-                            {categoria.id_categoria}
+                            {categoria.id_categoria} {/* Mostra ancora id_categoria per l'utente */}
                           </label>
                           <p className="text-xs text-gray-600">
                             {categoria.descrizione}
@@ -287,7 +287,7 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
                           <Label className="text-xs text-gray-600">Classificazione minima richiesta</Label>
                           <Select
                             value={selectedItem?.classificazione || 'I'}
-                            onValueChange={(value) => handleClassificazioneCercataChange(categoria.id_categoria, value)}
+                            onValueChange={(value) => handleClassificazioneCercataChange(categoria.id, value)} 
                           >
                             <SelectTrigger className="w-full mt-1">
                               <SelectValue />
@@ -322,14 +322,14 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
             {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 max-h-64 overflow-y-auto border rounded-md p-3">
                 {tender.categorieOpera.map((categoria) => {
-                  const isSelected = formData.categorieOfferte.some(item => item.categoriaId === categoria.id_categoria);
-                  const selectedItem = formData.categorieOfferte.find(item => item.categoriaId === categoria.id_categoria);
+                  const isSelected = formData.categorieOfferte.some(item => item.categoriaId === categoria.id); // Usa categoria.id invece di categoria.id_categoria
+                  const selectedItem = formData.categorieOfferte.find(item => item.categoriaId === categoria.id); // Usa categoria.id invece di categoria.id_categoria
 
                   return (
-                    <div key={`offerta-${categoria.id_categoria}`} className="space-y-2">
+                    <div key={`offerta-${categoria.id}`} className="space-y-2"> 
                       <div className="flex items-start space-x-2">
                         <Checkbox
-                          id={`offerta-${categoria.id_categoria}`}
+                          id={`offerta-${categoria.id}`} 
                           checked={isSelected}
                           onCheckedChange={(checked) =>
                             handleCategoriaOffertaToggle(categoria, checked as boolean)
@@ -337,10 +337,10 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
                         />
                         <div className="grid gap-1.5 leading-none flex-1">
                           <label
-                            htmlFor={`offerta-${categoria.id_categoria}`}
+                            htmlFor={`offerta-${categoria.id}`} 
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                           >
-                            {categoria.id_categoria}
+                            {categoria.id_categoria} {/* Mantieni id_categoria per la visualizzazione */}
                           </label>
                           <p className="text-xs text-gray-600">
                             {categoria.descrizione}
@@ -359,7 +359,7 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
                           <Label className="text-xs text-gray-600">Classificazione</Label>
                           <Select
                             value={selectedItem?.classificazione || 'I'}
-                            onValueChange={(value) => handleClassificazioneChange(categoria.id_categoria, value)}
+                            onValueChange={(value) => handleClassificazioneChange(categoria.id, value)}
                           >
                             <SelectTrigger className="w-full mt-1">
                               <SelectValue />

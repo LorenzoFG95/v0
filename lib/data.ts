@@ -1269,7 +1269,7 @@ export async function createAtiRichiesta(atiData: AtiRichiestaForm, userId: stri
     // Ottieni la data di scadenza del bando
     const { data: bandoData, error: bandoError } = await supabase
       .from("gara")
-      .select("scadenza")
+      .select("scadenza_offerta")
       .eq("id", atiData.bando_id)
       .single();
 
@@ -1297,9 +1297,10 @@ export async function createAtiRichiesta(atiData: AtiRichiestaForm, userId: stri
 
     // Inserisci le categorie offerte
     if (atiData.categorie_offerte.length > 0) {
-      const categorieOfferte = atiData.categorie_offerte.map(categoriaId => ({
+      const categorieOfferte = atiData.categorie_offerte.map(categoria => ({
         ati_richiesta_id: atiRichiestaId,
-        categoria_opera_id: categoriaId
+        categoria_opera_id: categoria.categoria_opera_id,
+        classificazione: categoria.classificazione
       }));
 
       const { error: offerteError } = await supabase
@@ -1316,7 +1317,8 @@ export async function createAtiRichiesta(atiData: AtiRichiestaForm, userId: stri
       const categorieCercate = atiData.categorie_cercate.map(categoria => ({
         ati_richiesta_id: atiRichiestaId,
         categoria_opera_id: categoria.categoria_opera_id,
-        priorita: categoria.priorita
+        priorita: categoria.priorita,
+        classificazione: categoria.classificazione
       }));
 
       const { error: cercateError } = await supabase
@@ -1430,7 +1432,7 @@ export async function getAtiRichiesteByAzienda(userId: string): Promise<AtiRichi
         gara:bando_id(
           id,
           descrizione,
-          scadenza,
+          scadenza_offerta,
           cig
         )
       `)
@@ -1504,11 +1506,19 @@ export async function hasAtiRichiestaForBando(bandoId: number, userId: string): 
       .select("id")
       .eq("bando_id", bandoId)
       .eq("azienda_richiedente_id", azienda.id)
-      .eq("stato", "attiva")
-      .single();
+      .eq("stato", "attiva");
+      // Rimuovi .single() qui
 
-    return !!data;
+    // Controlla se ci sono errori diversi da PGRST116
+    if (error && error.code !== 'PGRST116') {
+      console.error("Errore nel controllo delle richieste ATI:", error);
+      return false;
+    }
+
+    // Verifica se ci sono dati e se l'array ha elementi
+    return !!data && data.length > 0;
   } catch (error) {
+    console.error("Errore nel controllo delle richieste ATI:", error);
     return false;
   }
 }
