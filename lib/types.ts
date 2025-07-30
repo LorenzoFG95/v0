@@ -81,6 +81,7 @@ export interface AtiCategoriaOfferta {
   id: number;
   ati_richiesta_id: number;
   categoria_opera_id: number;
+  classificazione?: string; // Aggiunto campo classificazione
   categoria_opera?: CategoriaOpera; // Per il join
 }
 
@@ -89,9 +90,25 @@ export interface AtiCategoriaCercata {
   ati_richiesta_id: number;
   categoria_opera_id: number;
   priorita: number;
+  classificazione?: string; // Aggiunto campo classificazione
   categoria_opera?: CategoriaOpera; // Per il join
 }
 
+// Aggiornare anche il form
+export interface AtiRichiestaForm {
+  bando_id: number;
+  categorie_offerte: Array<{
+    categoria_opera_id: number;
+    classificazione: string;
+  }>;
+  categorie_cercate: Array<{
+    categoria_opera_id: number;
+    priorita: number;
+    classificazione: string;
+  }>;
+  data_scadenza?: string;
+  note_aggiuntive?: string;
+}
 export interface AtiContatto {
   id: number;
   ati_richiesta_id: number;
@@ -101,16 +118,4 @@ export interface AtiContatto {
   messaggio?: string;
   data_contatto: string;
   stato: 'inviato' | 'letto' | 'risposto';
-}
-
-// Tipo per il form di creazione ATI
-export interface AtiRichiestaForm {
-  bando_id: number;
-  categorie_offerte: number[]; // IDs delle categorie opera
-  categorie_cercate: Array<{
-    categoria_opera_id: number;
-    priorita: number;
-  }>;
-  data_scadenza?: string;
-  note_aggiuntive?: string;
 }

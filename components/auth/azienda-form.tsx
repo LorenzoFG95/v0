@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X } from "lucide-react"
-import { getCategorieOpera, getAziendaCategorieOpera, saveAziendaCategorieOpera } from "@/lib/data"
+import { getCategorieOpera, getAziendaCategorieOpera, saveAziendaCategorieOpera, saveAziendaCategorieOperaConClassificazione } from "@/lib/data"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -18,6 +19,11 @@ interface AziendaFormProps {
   userId: string
   onClose: () => void
   onSave: (azienda: any) => void
+}
+// Aggiungi questa interfaccia per le categorie con classificazione
+interface CategoriaConClassificazione {
+  categoriaId: string
+  classificazione: string
 }
 
 export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormProps) {
@@ -34,9 +40,20 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [categorieOpera, setCategorieOpera] = useState<{ id: string; descrizione: string; id_categoria: string }[]>([])
-  const [selectedCategorieOpera, setSelectedCategorieOpera] = useState<string[]>([])
+  const [selectedCategorieOpera, setSelectedCategorieOpera] = useState<CategoriaConClassificazione[]>([])
   const [loadingCategorie, setLoadingCategorie] = useState(false)
   const supabase = createClient()
+
+  const classificazioni = [
+    { value: 'I', label: 'I fascia - fino a 258.000 €' },
+    { value: 'II', label: 'II fascia - fino a 516.000 €' },
+    { value: 'III', label: 'III fascia - fino a 1.033.000 €' },
+    { value: 'IV', label: 'IV fascia - fino a 2.582.000 €' },
+    { value: 'V', label: 'V fascia - fino a 5.165.000 €' },
+    { value: 'VI', label: 'VI fascia - fino a 10.329.000 €' },
+    { value: 'VII', label: 'VII fascia - fino a 15.494.000 €' },
+    { value: 'VIII', label: 'VIII fascia - senza limiti' }
+  ]
 
   useEffect(() => {
     if (azienda) {
@@ -69,8 +86,20 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
   const loadAziendaCategorieOpera = async (aziendaId: number) => {
     try {
-      const categorieIds = await getAziendaCategorieOpera(aziendaId)
-      setSelectedCategorieOpera(categorieIds)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("azienda_categoria_opera")
+        .select("categoria_opera_id, classificazione")
+        .eq("azienda_id", aziendaId)
+      
+      if (error) throw error
+      
+      const categorieConClassificazione = data?.map(item => ({
+        categoriaId: item.categoria_opera_id.toString(),
+        classificazione: item.classificazione || 'I'
+      })) || []
+      
+      setSelectedCategorieOpera(categorieConClassificazione)
     } catch (error) {
       console.error("Errore nel caricamento delle categorie opera dell'azienda:", error)
     }
@@ -78,10 +107,20 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
   const handleCategoriaOperaChange = (categoriaId: string, checked: boolean) => {
     if (checked) {
-      setSelectedCategorieOpera(prev => [...prev, categoriaId])
+      setSelectedCategorieOpera(prev => [...prev, { categoriaId, classificazione: 'I' }])
     } else {
-      setSelectedCategorieOpera(prev => prev.filter(id => id !== categoriaId))
+      setSelectedCategorieOpera(prev => prev.filter(item => item.categoriaId !== categoriaId))
     }
+  }
+
+  const handleClassificazioneChange = (categoriaId: string, classificazione: string) => {
+    setSelectedCategorieOpera(prev => 
+      prev.map(item => 
+        item.categoriaId === categoriaId 
+          ? { ...item, classificazione }
+          : item
+      )
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,7 +145,6 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
       let result
       if (azienda) {
-        // Aggiorna azienda esistente
         result = await supabase
           .from("azienda")
           .update(aziendaData)
@@ -114,7 +152,6 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
           .select()
           .single()
       } else {
-        // Crea nuova azienda
         result = await supabase
           .from("azienda")
           .insert([aziendaData])
@@ -124,8 +161,8 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
       if (result.error) throw result.error
 
-      // Salva le categorie opera selezionate
-      await saveAziendaCategorieOpera(result.data.id as number, selectedCategorieOpera)
+      // Salva le categorie opera con classificazioni
+      await saveAziendaCategorieOperaConClassificazione(result.data.id as number, selectedCategorieOpera)
 
       onSave(result.data)
     } catch (error: any) {
@@ -253,45 +290,72 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
             </div>
           </div>
 
-          {/* Sezione Categorie Opera */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Categorie Opera di Competenza</h3>
-            <p className="text-sm text-muted-foreground">
-              Seleziona le categorie opera per le quali la tua azienda è qualificata. Questo aiuterà a identificare i bandi più rilevanti.
-            </p>
-            
-            {loadingCategorie ? (
-              <div className="text-center py-4">Caricamento categorie...</div>
-            ) : (
-              <ScrollArea className="h-64 w-full border rounded-md p-4">
-                <div className="grid grid-cols-1 gap-3">
-                  {categorieOpera.map((categoria) => (
-                    <div key={categoria.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`categoria-${categoria.id}`}
-                        checked={selectedCategorieOpera.includes(categoria.id)}
-                        onCheckedChange={(checked) => 
-                          handleCategoriaOperaChange(categoria.id, checked as boolean)
-                        }
-                      />
-                      <Label 
-                        htmlFor={`categoria-${categoria.id}`}
-                        className="text-sm font-normal cursor-pointer flex-1"
-                      >
-                        <span className="font-medium">{categoria.id_categoria}</span> - {categoria.descrizione}
-                      </Label>
-                    </div>
-                  ))}
+              <h3 className="text-lg font-medium">Categorie Opera di Competenza</h3>
+              <p className="text-sm text-muted-foreground">
+                Seleziona le categorie opera per le quali la tua azienda è qualificata e specifica la classificazione per ciascuna.
+              </p>
+              
+              {loadingCategorie ? (
+                <div className="text-center py-4">Caricamento categorie...</div>
+              ) : (
+                <ScrollArea className="h-64 w-full border rounded-md p-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    {categorieOpera.map((categoria) => {
+                      const isSelected = selectedCategorieOpera.some(item => item.categoriaId === categoria.id)
+                      const selectedItem = selectedCategorieOpera.find(item => item.categoriaId === categoria.id)
+                      
+                      return (
+                        <div key={categoria.id} className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`categoria-${categoria.id}`}
+                              checked={isSelected}
+                              onCheckedChange={(checked) => 
+                                handleCategoriaOperaChange(categoria.id, checked as boolean)
+                              }
+                            />
+                            <Label 
+                              htmlFor={`categoria-${categoria.id}`}
+                              className="text-sm font-normal cursor-pointer flex-1"
+                            >
+                              <span className="font-medium">{categoria.id_categoria}</span> - {categoria.descrizione}
+                            </Label>
+                          </div>
+                          
+                          {isSelected && (
+                            <div className="ml-6">
+                              <Label className="text-xs text-muted-foreground">Classificazione</Label>
+                              <Select 
+                                value={selectedItem?.classificazione || 'I'}
+                                onValueChange={(value) => handleClassificazioneChange(categoria.id, value)}
+                              >
+                                <SelectTrigger className="w-full mt-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {classificazioni.map((classif) => (
+                                    <SelectItem key={classif.value} value={classif.value}>
+                                      {classif.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+              
+              {selectedCategorieOpera.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  Categorie selezionate: {selectedCategorieOpera.length}
                 </div>
-              </ScrollArea>
-            )}
-            
-            {selectedCategorieOpera.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                Categorie selezionate: {selectedCategorieOpera.length}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
           {error && (
             <Alert variant="destructive">

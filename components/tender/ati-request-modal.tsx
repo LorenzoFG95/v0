@@ -18,12 +18,13 @@ import { Handshake, Plus } from "lucide-react";
 import type { Tender, CategoriaOpera } from "@/lib/types";
 import { createAtiRichiesta, hasAtiRichiestaForBando } from "@/lib/data";
 import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Tipo corretto per il form
 interface AtiRichiestaFormData {
   bandoId: string;
-  categorieOfferte: string[];
-  categorieCercate: string[];
+  categorieOfferte: Array<{ categoriaId: string; classificazione: string }>; // Modificato
+  categorieCercate: Array<{ categoriaId: string; classificazione: string }>;
   note: string;
 }
 
@@ -46,11 +47,22 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
   const [checkingExisting, setCheckingExisting] = useState(true);
   const [privacyConsent, setPrivacyConsent] = useState(false);
 
+  const classificazioni = [
+    { value: 'I', label: 'I fascia - fino a 258.000 €' },
+    { value: 'II', label: 'II fascia - fino a 516.000 €' },
+    { value: 'III', label: 'III fascia - fino a 1.033.000 €' },
+    { value: 'IV', label: 'IV fascia - fino a 2.582.000 €' },
+    { value: 'V', label: 'V fascia - fino a 5.165.000 €' },
+    { value: 'VI', label: 'VI fascia - fino a 10.329.000 €' },
+    { value: 'VII', label: 'VII fascia - fino a 15.494.000 €' },
+    { value: 'VIII', label: 'VIII fascia - senza limiti' }
+  ];
+
   // Verifica se l'utente ha già una richiesta ATI per questo bando
   useEffect(() => {
     async function checkExistingRequest() {
       if (!isOpen || !userId) return;
-      
+
       try {
         setCheckingExisting(true);
         // Correzione: parametri nell'ordine corretto
@@ -82,18 +94,40 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
   const handleCategoriaOffertaToggle = (categoria: CategoriaOpera, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      categorieOfferte: checked 
-        ? [...prev.categorieOfferte, categoria.id_categoria]
-        : prev.categorieOfferte.filter(id => id !== categoria.id_categoria)
+      categorieOfferte: checked
+        ? [...prev.categorieOfferte, { categoriaId: categoria.id_categoria, classificazione: 'I' }]
+        : prev.categorieOfferte.filter(item => item.categoriaId !== categoria.id_categoria)
+    }));
+  };
+
+  const handleClassificazioneChange = (categoriaId: string, classificazione: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categorieOfferte: prev.categorieOfferte.map(item =>
+        item.categoriaId === categoriaId
+          ? { ...item, classificazione }
+          : item
+      )
     }));
   };
 
   const handleCategoriaCercataToggle = (categoria: CategoriaOpera, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      categorieCercate: checked 
-        ? [...prev.categorieCercate, categoria.id_categoria]
-        : prev.categorieCercate.filter(id => id !== categoria.id_categoria)
+      categorieCercate: checked
+        ? [...prev.categorieCercate, { categoriaId: categoria.id_categoria, classificazione: 'I' }]
+        : prev.categorieCercate.filter(item => item.categoriaId !== categoria.id_categoria)
+    }));
+  };
+
+  const handleClassificazioneCercataChange = (categoriaId: string, classificazione: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categorieCercate: prev.categorieCercate.map(item =>
+        item.categoriaId === categoriaId
+          ? { ...item, classificazione }
+          : item
+      )
     }));
   };
 
@@ -118,25 +152,29 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
 
     try {
       setIsSubmitting(true);
-      
-      // Correzione: creare l'oggetto nel formato corretto per l'API
+
+      // Creare l'oggetto nel formato corretto per l'API
       const atiData = {
         bando_id: parseInt(tender.id),
-        categorie_offerte: formData.categorieOfferte.map(cat => parseInt(cat)),
-        categorie_cercate: formData.categorieCercate.map((cat, index) => ({
-          categoria_opera_id: parseInt(cat),
-          priorita: index + 1
+        categorie_offerte: formData.categorieOfferte.map(item => ({
+          categoria_opera_id: parseInt(item.categoriaId),
+          classificazione: item.classificazione
+        })),
+        categorie_cercate: formData.categorieCercate.map((item, index) => ({
+          categoria_opera_id: parseInt(item.categoriaId),
+          priorita: index + 1,
+          classificazione: item.classificazione // Aggiunto
         })),
         note_aggiuntive: formData.note
       };
-      
+
       await createAtiRichiesta(atiData, userId);
-      
+
       toast({
         title: "Richiesta ATI creata",
         description: "La tua richiesta di ATI è stata registrata con successo."
       });
-      
+
       onClose();
     } catch (error) {
       console.error("Errore nella creazione richiesta ATI:", error);
@@ -154,6 +192,12 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Controllo richieste esistenti</DialogTitle>
+            <DialogDescription>
+              Stiamo verificando se hai già una richiesta ATI per questo bando.
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-2">Controllo richieste esistenti...</span>
@@ -195,87 +239,144 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
         </DialogHeader>
 
         <div className="space-y-6">
-
-          {/* Categorie Cercate */}
+          {/* Sezione Categorie Cercate */}
           <div>
-            <Label className="text-base font-medium">Categorie che stai cercando</Label>
+            <Label className="text-base font-medium mb-3 block">
+              Categorie Cercate
+            </Label>
             <p className="text-sm text-gray-600 mb-3">
-              Seleziona le categorie opera per cui cerchi partner qualificati
+              Seleziona le categorie per cui cerchi partner qualificati
             </p>
-            
             {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-md p-3">
-                {tender.categorieOpera.map((categoria) => (
-                  <div key={`cercata-${categoria.id_categoria}`} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`cercata-${categoria.id_categoria}`}
-                      checked={formData.categorieCercate.includes(categoria.id_categoria)}
-                      onCheckedChange={(checked) => 
-                        handleCategoriaCercataToggle(categoria, checked as boolean)
-                      }
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor={`cercata-${categoria.id_categoria}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {categoria.id_categoria}
-                      </label>
-                      <p className="text-xs text-gray-600">
-                        {categoria.descrizione}
-                      </p>
-                      <Badge
-                        variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
-                        className="w-fit text-xs"
-                      >
-                        {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
-                      </Badge>
+              <div className="grid grid-cols-1 gap-4 max-h-64 overflow-y-auto border rounded-md p-3">
+                {tender.categorieOpera.map((categoria) => {
+                  const isSelected = formData.categorieCercate.some(item => item.categoriaId === categoria.id_categoria);
+                  const selectedItem = formData.categorieCercate.find(item => item.categoriaId === categoria.id_categoria);
+
+                  return (
+                    <div key={`cercata-${categoria.id_categoria}`} className="space-y-2">
+                      <div className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`cercata-${categoria.id_categoria}`}
+                          checked={isSelected}
+                          onCheckedChange={(checked) =>
+                            handleCategoriaCercataToggle(categoria, checked as boolean)
+                          }
+                        />
+                        <div className="grid gap-1.5 leading-none flex-1">
+                          <label
+                            htmlFor={`cercata-${categoria.id_categoria}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {categoria.id_categoria}
+                          </label>
+                          <p className="text-xs text-gray-600">
+                            {categoria.descrizione}
+                          </p>
+                          <Badge
+                            variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                            className="w-fit text-xs"
+                          >
+                            {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div className="ml-6 mt-2">
+                          <Label className="text-xs text-gray-600">Classificazione minima richiesta</Label>
+                          <Select
+                            value={selectedItem?.classificazione || 'I'}
+                            onValueChange={(value) => handleClassificazioneCercataChange(categoria.id_categoria, value)}
+                          >
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {classificazioni.map((classif) => (
+                                <SelectItem key={classif.value} value={classif.value}>
+                                  {classif.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic">Nessuna categoria opera disponibile per questo bando.</p>
             )}
           </div>
 
-          {/* Categorie Offerte */}
+          {/* Sezione Categorie Offerte */}
           <div>
-            <Label className="text-base font-medium">Categorie che la tua azienda può offrire</Label>
+            <Label className="text-base font-medium mb-3 block">
+              Categorie Offerte
+            </Label>
             <p className="text-sm text-gray-600 mb-3">
-              Seleziona le categorie opera per cui la tua azienda ha le qualificazioni necessarie
+              Seleziona le categorie per cui la tua azienda è qualificata
             </p>
-            
             {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto border rounded-md p-3">
-                {tender.categorieOpera.map((categoria) => (
-                  <div key={`offerta-${categoria.id_categoria}`} className="flex items-start space-x-2">
-                    <Checkbox
-                      id={`offerta-${categoria.id_categoria}`}
-                      checked={formData.categorieOfferte.includes(categoria.id_categoria)}
-                      onCheckedChange={(checked) => 
-                        handleCategoriaOffertaToggle(categoria, checked as boolean)
-                      }
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor={`offerta-${categoria.id_categoria}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {categoria.id_categoria}
-                      </label>
-                      <p className="text-xs text-gray-600">
-                        {categoria.descrizione}
-                      </p>
-                      <Badge
-                        variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
-                        className="w-fit text-xs"
-                      >
-                        {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
-                      </Badge>
+              <div className="grid grid-cols-1 gap-4 max-h-64 overflow-y-auto border rounded-md p-3">
+                {tender.categorieOpera.map((categoria) => {
+                  const isSelected = formData.categorieOfferte.some(item => item.categoriaId === categoria.id_categoria);
+                  const selectedItem = formData.categorieOfferte.find(item => item.categoriaId === categoria.id_categoria);
+
+                  return (
+                    <div key={`offerta-${categoria.id_categoria}`} className="space-y-2">
+                      <div className="flex items-start space-x-2">
+                        <Checkbox
+                          id={`offerta-${categoria.id_categoria}`}
+                          checked={isSelected}
+                          onCheckedChange={(checked) =>
+                            handleCategoriaOffertaToggle(categoria, checked as boolean)
+                          }
+                        />
+                        <div className="grid gap-1.5 leading-none flex-1">
+                          <label
+                            htmlFor={`offerta-${categoria.id_categoria}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {categoria.id_categoria}
+                          </label>
+                          <p className="text-xs text-gray-600">
+                            {categoria.descrizione}
+                          </p>
+                          <Badge
+                            variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                            className="w-fit text-xs"
+                          >
+                            {categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div className="ml-6 mt-2">
+                          <Label className="text-xs text-gray-600">Classificazione</Label>
+                          <Select
+                            value={selectedItem?.classificazione || 'I'}
+                            onValueChange={(value) => handleClassificazioneChange(categoria.id_categoria, value)}
+                          >
+                            <SelectTrigger className="w-full mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {classificazioni.map((classif) => (
+                                <SelectItem key={classif.value} value={classif.value}>
+                                  {classif.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-gray-500 italic">Nessuna categoria opera disponibile per questo bando.</p>
@@ -315,8 +416,8 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
                     Consenso alla condivisione delle informazioni
                   </label>
                   <p className="text-xs text-gray-700">
-                    Autorizzo la piattaforma a mostrare le mie informazioni di contatto (nome azienda, email, telefono) 
-                    alle aziende interessate a collaborare per questo bando. Questo consenso è necessario per permettere 
+                    Autorizzo la piattaforma a mostrare le mie informazioni di contatto (nome azienda, email, telefono)
+                    alle aziende interessate a collaborare per questo bando. Questo consenso è necessario per permettere
                     ad altre aziende di contattarmi per proposte di ATI.
                   </p>
                 </div>
@@ -329,8 +430,8 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Annulla
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={isSubmitting || (formData.categorieOfferte.length === 0 && formData.categorieCercate.length === 0) || !privacyConsent}
             className="flex items-center gap-2"
           >

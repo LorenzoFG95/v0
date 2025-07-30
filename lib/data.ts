@@ -1070,6 +1070,78 @@ export async function saveAziendaCategorieOpera(aziendaId: number, categorieIds:
   }
 }
 
+export async function saveAziendaCategorieOperaConClassificazione(
+  aziendaId: number, 
+  categorieConClassificazione: Array<{ categoriaId: string; classificazione: string }>
+): Promise<void> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    // Prima elimina tutte le categorie esistenti per questa azienda
+    const { error: deleteError } = await supabase
+      .from("azienda_categoria_opera")
+      .delete()
+      .eq("azienda_id", aziendaId)
+
+    if (deleteError) {
+      throw new Error(`Errore nell'eliminazione delle categorie esistenti: ${deleteError.message}`);
+    }
+
+    // Poi inserisce le nuove categorie con classificazioni se ce ne sono
+    if (categorieConClassificazione.length > 0) {
+      const insertData = categorieConClassificazione.map(item => ({
+        azienda_id: aziendaId,
+        categoria_opera_id: parseInt(item.categoriaId),
+        classificazione: item.classificazione
+      }));
+
+      const { error: insertError } = await supabase
+        .from("azienda_categoria_opera")
+        .insert(insertData)
+
+      if (insertError) {
+        throw new Error(`Errore nell'inserimento delle nuove categorie: ${insertError.message}`);
+      }
+    }
+  } catch (error) {
+    console.error("Errore nel salvataggio delle categorie opera con classificazione:", error);
+    throw error;
+  }
+}
+
+export async function getAziendaCategorieOperaConClassificazione(
+  aziendaId: number
+): Promise<Array<{ categoriaId: string; classificazione: string }>> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Variabili di ambiente Supabase non configurate.");
+  }
+
+  try {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+      .from("azienda_categoria_opera")
+      .select("categoria_opera_id, classificazione")
+      .eq("azienda_id", aziendaId)
+
+    if (error) {
+      throw new Error(`Errore nel recupero delle categorie opera dell'azienda: ${error.message}`);
+    }
+
+    return data?.map(item => ({
+      categoriaId: item.categoria_opera_id.toString(),
+      classificazione: item.classificazione || 'I'
+    })) || [];
+  } catch (error) {
+    console.error("Errore nel recupero delle categorie opera con classificazione:", error);
+    throw error;
+  }
+}
+
 // Funzione per ottenere l'azienda dell'utente corrente
 export async function getUserAzienda(userId: string): Promise<{ id: number; ragione_sociale: string } | null> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
