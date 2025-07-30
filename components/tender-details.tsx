@@ -116,7 +116,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
               <Hash className="text-blue-600" size={20} />
             </div>
             <div className="ml-3">
-              <div className="text-sm text-blue-600 font-medium">Codice Identificativo Gara</div>
+              <div className="text-sm text-blue-600 font-medium">Codice Identificativo Gara (CIG)</div>
               <div className="font-medium">{tender.cig}</div>
             </div>
           </div>
@@ -195,7 +195,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
 
               <div>
                 <div className="text-sm font-medium text-gray-500">
-                  Contatto
+                  RUP
                 </div>
                 {tender.rup ? (
                   <>

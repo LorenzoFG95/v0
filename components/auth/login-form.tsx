@@ -32,9 +32,8 @@ export function LoginForm() {
 
       if (error) throw error;
 
-      // Reindirizza alla dashboard dopo il login
-      router.push("/");
-      router.refresh();
+      // Reindirizza alla dashboard dopo il login con refresh completo
+      window.location.href = "/";
     } catch (error: any) {
       setError(error.message || "Credenziali non valide");
     } finally {

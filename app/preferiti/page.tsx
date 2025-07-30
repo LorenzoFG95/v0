@@ -23,7 +23,7 @@ export default async function FavoritesPage() {
             <h1 className="text-3xl font-bold text-gray-900">Gare Preferite</h1>
           </div>
           <p className="text-gray-600">
-            Le tue gare d'appalto salvate - {userData?.user?.email}
+            Le tue gare d'appalto salvate {userData?.user?.email}
           </p>
         </div>
 

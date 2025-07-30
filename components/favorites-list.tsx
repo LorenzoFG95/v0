@@ -19,9 +19,24 @@ interface FavoritesListProps {
 export function FavoritesList({ initialFavorites = [], onFavoriteRemoved }: FavoritesListProps) {
   const { user, loading: authLoading, favorites: contextFavorites } = useAuth()
   const [favorites, setFavorites] = useState<Tender[]>(initialFavorites)
-  const [loading, setLoading] = useState(false) // ✅ Non loading se abbiamo dati iniziali
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [favoriteIds, setFavoriteIds] = useState<string[]>([])
+  const [authTimeout, setAuthTimeout] = useState(false)
+
+  // Timeout per gestire il caricamento infinito quando non loggati
+  useEffect(() => {
+    if (authLoading) {
+      const timer = setTimeout(() => {
+        console.log('⏰ Timeout autenticazione raggiunto, assumo utente non loggato')
+        setAuthTimeout(true)
+      }, 3000) // 3 secondi di timeout
+
+      return () => clearTimeout(timer)
+    } else {
+      setAuthTimeout(false)
+    }
+  }, [authLoading])
 
   // Funzione per caricare i preferiti
   const loadFavorites = async () => {
@@ -54,15 +69,16 @@ export function FavoritesList({ initialFavorites = [], onFavoriteRemoved }: Favo
   }
 
   // Carica i preferiti quando il componente si monta o cambia l'utente
-  // ✅ Usa i dati iniziali se disponibili
   useEffect(() => {
     if (initialFavorites.length > 0) {
       setFavorites(initialFavorites)
       return
     }
-    // Solo se non abbiamo dati iniziali, carica dal server
-    loadFavorites()
-  }, [user, authLoading])
+    // Solo se non abbiamo dati iniziali e l'auth non è in timeout, carica dal server
+    if (!authTimeout) {
+      loadFavorites()
+    }
+  }, [user, authLoading, authTimeout])
 
   // Funzione per rimuovere un preferito dalla lista
   const handleFavoriteRemoved = (tenderId: string) => {
@@ -76,12 +92,46 @@ export function FavoritesList({ initialFavorites = [], onFavoriteRemoved }: Favo
     loadFavorites()
   }
 
-  if (authLoading || loading) {
+  // Mostra il caricamento solo se authLoading è true E non abbiamo raggiunto il timeout
+  if ((authLoading && !authTimeout) || loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-500">Caricamento preferiti...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Se abbiamo raggiunto il timeout dell'auth, mostra il messaggio per utenti non loggati
+  if (authTimeout && !user) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-medium mb-2 text-gray-900">
+          Accedi per vedere i tuoi preferiti
+        </h3>
+        <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          Per visualizzare e gestire le tue gare preferite, effettua l'accesso al tuo account.
+        </p>
+        <div className="space-y-3">
+          <div className="flex gap-3 justify-center">
+            <Link href="/auth/login">
+              <Button variant="default">
+                Accedi
+              </Button>
+            </Link>
+            <Link href="/auth/register">
+              <Button variant="outline">
+                Registrati
+              </Button>
+            </Link>
+          </div>
+          <div className="text-sm text-gray-500">
+            <Link href="/" className="text-blue-600 hover:underline">
+              Torna alla homepage
+            </Link>
+          </div>
         </div>
       </div>
     )
