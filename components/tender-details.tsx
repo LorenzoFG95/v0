@@ -268,12 +268,12 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <Badge
-                              variant={
+                              variant={categoria.cod_tipo_categoria === "P" ? "outline" : "secondary"}
+                              className={`mr-2 ${
                                 categoria.cod_tipo_categoria === "P"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className="mr-2"
+                                  ? "bg-gray-100 border-2 border-blue-500 text-blue-600"
+                                  : ""
+                              }`}
                             >
                               {categoria.descrizione_tipo_categoria || 
                                 (categoria.cod_tipo_categoria === "P"
