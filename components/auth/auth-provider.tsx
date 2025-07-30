@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 import type { CompleteUserData } from '@/lib/server-auth'
 
 interface AuthContextType {
@@ -34,6 +35,7 @@ export function AuthProvider({ children, initialUserData }: AuthProviderProps) {
   const [loading, setLoading] = useState(!initialUserData)
   
   const supabase = createClient()
+  const router = useRouter()
 
   // ✅ Usa i dati iniziali se disponibili, altrimenti carica solo se necessario
   useEffect(() => {
@@ -69,11 +71,20 @@ export function AuthProvider({ children, initialUserData }: AuthProviderProps) {
   }, [initialUserData, user])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-    setAzienda(null)
-    setFavorites([])
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      setProfile(null)
+      setAzienda(null)
+      setFavorites([])
+      
+      // Reindirizza alla home page dopo il logout
+      router.push('/')
+    } catch (error) {
+      console.error('Errore durante il logout:', error)
+      // Anche in caso di errore, reindirizza alla home
+      router.push('/')
+    }
   }
 
   const updateProfile = (newProfile: any) => {

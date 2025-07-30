@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { FavoriteButton } from "@/components/favorite-button";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { checkCategorieOperaMatch } from "@/lib/data"
 import {
   Building,
   Euro,
@@ -35,6 +36,10 @@ interface TenderDetailsProps {
 export function TenderDetails({ tender }: TenderDetailsProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAtiModalOpen, setIsAtiModalOpen] = useState(false);
+
+  // Stato per le categorie corrispondenti
+  const [matchingCategories, setMatchingCategories] = useState<string[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
   
   useEffect(() => {
     async function getUser() {
@@ -45,6 +50,29 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
     getUser();
   }, []);
 
+  // Effetto per ottenere le categorie corrispondenti
+  useEffect(() => {
+    async function getMatchingCategories() {
+      if (!userId || !tender.categorieOpera || tender.categorieOpera.length === 0) {
+        setMatchingCategories([])
+        setCategoriesLoading(false)
+        return
+      }
+
+      try {
+        const result = await checkCategorieOperaMatch(tender.categorieOpera, userId)
+        setMatchingCategories(result.matchingCategories)
+      } catch (error) {
+        console.error("Errore nel recupero delle categorie corrispondenti:", error)
+        setMatchingCategories([])
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+
+    getMatchingCategories()
+  }, [tender.categorieOpera, userId])
+
   // Determina lo stile della scadenza
   const deadlineStyle = getDeadlineStyle(tender.scadenza);
   
@@ -52,6 +80,11 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
   const handleAtiRequest = () => {
     setIsAtiModalOpen(true);
   };
+
+    // Funzione per verificare se una categoria è in comune
+  const isCategoriaInComune = (idCategoria: string) => {
+    return matchingCategories.includes(idCategoria)
+  }
   
   return (
     <div className="space-y-6">
@@ -82,32 +115,12 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
               </HoverCardContent>
             </HoverCard>
             
-            {/* Bottone ATI - visibile solo per bandi di lavori e utenti autenticati */}
-            {userId && tender.naturaPrincipale?.toLowerCase() === "lavori" && (
-              <Button
-                onClick={handleAtiRequest}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
-              >
-                <Handshake size={16} />
-                Richiedi ATI
-              </Button>
-            )}
             
             <FavoriteButton tenderId={tender.id} />
           </div>
         </div>
 
         <h1 className="text-2xl font-bold mb-4">{tender.descrizione}</h1>
-
-        {/* Indicatore di corrispondenza categorie opera */}
-        {tender.categorieOpera && tender.categorieOpera.length > 0 && 
-         tender.naturaPrincipale?.toLowerCase() === "lavori" && (
-          <div className="mb-6">
-            <CategorieOperaMatchIndicator tender={tender} userId={userId} />
-          </div>
-        )}
 
         {/* Informazioni principali */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -172,7 +185,7 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
         )}
       </div>
 
-      {/* Layout a 3 colonne */}
+      {/* Layout a 2 colonne - Stazione Appaltante e Classificazione allargata */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Stazione Appaltante */}
         <Card>
@@ -247,8 +260,8 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
           </CardContent>
         </Card>
 
-        {/* Classificazione */}
-        <Card>
+        {/* Classificazione - allargata a 2/3 */}
+        <Card className="md:col-span-2">
           <CardHeader className="pb-2">
             <h2 className="text-lg font-medium flex items-center">
               <FileText className="mr-2" size={18} />
@@ -256,56 +269,97 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </h2>
           </CardHeader>
           <CardContent>
+            {/* Indicatore di corrispondenza categorie opera - spostato qui */}
+            {tender.categorieOpera && tender.categorieOpera.length > 0 && 
+             tender.naturaPrincipale?.toLowerCase() === "lavori" && (
+              <div className="mb-4">
+                <CategorieOperaMatchIndicator tender={tender} userId={userId} />
+              </div>
+            )}
+            
             {tender.categorieOpera && tender.categorieOpera.length > 0 && 
                 tender.naturaPrincipale?.toLowerCase() === "lavori" && (
                 <div>
-                  <div className="text-sm font-medium text-gray-500 mb-2">
-                    Categorie Opera
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium text-gray-500">
+                      Categorie Opera
+                    </div>
+                    {/* Bottone ATI - visibile solo per bandi di lavori e utenti autenticati */}
+                    {userId && tender.naturaPrincipale?.toLowerCase() === "lavori" && (
+                      <Button
+                        onClick={handleAtiRequest}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300"
+                      >
+                        <Handshake size={16} />
+                        Richiedi ATI
+                      </Button>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    {tender.categorieOpera.map((categoria, index) => (
-                      <div key={index} className="border rounded-md p-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Badge
-                              variant={categoria.cod_tipo_categoria === "P" ? "outline" : "secondary"}
-                              className={`mr-2 ${
-                                categoria.cod_tipo_categoria === "P"
-                                  ? "bg-gray-100 border-2 border-blue-500 text-blue-600"
-                                  : ""
-                              }`}
-                            >
-                              {categoria.descrizione_tipo_categoria || 
-                                (categoria.cod_tipo_categoria === "P"
-                                  ? "Prevalente"
-                                  : "Scorporabile")}
-                            </Badge>
-                            <HoverCard>
-                              <HoverCardTrigger asChild>
-                                <div className="font-medium cursor-help">
-                                  {categoria.id_categoria}
-                                </div>
-                              </HoverCardTrigger>
-                              <HoverCardContent className="w-80">
-                                <div className="space-y-1">
-                                  <h4 className="text-sm font-semibold">Dettagli Categoria</h4>
-                                  <p className="text-sm">{categoria.descrizione}</p>
-                                </div>
-                              </HoverCardContent>
-                            </HoverCard>
+                    {tender.categorieOpera.map((categoria, index) => {
+                      const isMatching = !categoriesLoading && isCategoriaInComune(categoria.id_categoria)
+                      
+                      return (
+                        <div 
+                          key={index} 
+                          className={`border rounded-md p-2 transition-colors duration-200 ${
+                            isMatching 
+                              ? "bg-green-50 border-green-200" 
+                              : "border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <Badge
+                                variant={categoria.cod_tipo_categoria === "P" ? "outline" : "secondary"}
+                                className={`mr-2 ${
+                                  categoria.cod_tipo_categoria === "P"
+                                    ? "bg-gray-100 border-2 border-blue-500 text-blue-600"
+                                    : ""
+                                }`}
+                              >
+                                {categoria.descrizione_tipo_categoria || 
+                                  (categoria.cod_tipo_categoria === "P"
+                                    ? "Prevalente"
+                                    : "Scorporabile")}
+                              </Badge>
+                              
+                              <HoverCard>
+                                <HoverCardTrigger asChild>
+                                  <div className={`font-medium cursor-help ${
+                                    isMatching ? "text-green-700" : ""
+                                  }`}>
+                                    {categoria.id_categoria}
+                                  </div>
+                                </HoverCardTrigger>
+                                <HoverCardContent className="w-80">
+                                  <div className="space-y-1">
+                                    <h4 className="text-sm font-semibold">Dettagli Categoria</h4>
+                                    <p className="text-sm">{categoria.descrizione}</p>
+                                    {isMatching && (
+                                      <p className="text-xs text-green-600 font-medium mt-2">
+                                        ✓ Questa categoria corrisponde al tuo profilo aziendale
+                                      </p>
+                                    )}
+                                  </div>
+                                </HoverCardContent>
+                              </HoverCard>
+                            </div>
+                            
+                            {/* Badge ATI - mostra solo se ci sono offerte */}
+                            <AtiOfferteIndicator 
+                              categoria={categoria} 
+                              bandoId={tender.id} 
+                            />
                           </div>
-                          
-                          {/* Badge ATI - mostra solo se ci sono offerte */}
-                          <AtiOfferteIndicator 
-                            categoria={categoria} 
-                            bandoId={tender.id} 
-                          />
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
-              )}
+            )}
 
             <div className="space-y-4 mt-4">
               <div>
@@ -324,42 +378,51 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Timeline */}
-        <Card>
-          <CardHeader className="pb-2">
-            <h2 className="text-lg font-medium">Timeline</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="relative pl-8 border-l-2 border-gray-200 space-y-6">
-              <div className="relative">
-                <div className="absolute -left-[25px] -top-[-10px] bg-blue-600 rounded-full w-4 h-4"></div>
+      {/* Timeline - scheda orizzontale separata */}
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <h2 className="text-lg font-medium">Timeline</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex items-center">
+              <div className="bg-blue-600 rounded-full w-4 h-4 mr-4"></div>
+              <div>
                 <div className="font-medium">Pubblicazione</div>
                 <div className="text-sm text-gray-500">
                   {formatDate(tender.pubblicazione)} 06:00
                 </div>
               </div>
+            </div>
 
-              <div className="relative">
-                <div className="absolute -left-[25px] -top-[-10px] bg-blue-600 rounded-full w-4 h-4"></div>
+            <div className="hidden md:block flex-1 h-px bg-gray-200 mx-4"></div>
+
+            <div className="flex items-center">
+              <div className="bg-blue-600 rounded-full w-4 h-4 mr-4"></div>
+              <div>
                 <div className="font-medium">Inizio Gara</div>
                 <div className="text-sm text-gray-500">
                   {formatDate(tender.inizioGara)} 06:00
                 </div>
               </div>
+            </div>
 
-              <div className="relative">
-                <div className="absolute -left-[25px] -top-[-10px] bg-blue-600 rounded-full w-4 h-4"></div>
+            <div className="hidden md:block flex-1 h-px bg-gray-200 mx-4"></div>
+
+            <div className="flex items-center">
+              <div className="bg-blue-600 rounded-full w-4 h-4 mr-4"></div>
+              <div>
                 <div className="font-medium">Scadenza Gara</div>
                 <div className="text-sm text-gray-500">
                   {formatDate(tender.scadenza)} 12:00
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
+          </div>
+        </CardContent>
+      </Card>
       {/* Modal ATI */}
       {userId && (
         <AtiRequestModal

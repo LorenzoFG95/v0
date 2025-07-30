@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Target } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Target, LogIn, Building } from "lucide-react";
 import type { Tender } from "@/lib/types";
 import { checkCategorieOperaMatch } from "@/lib/data";
+import Link from "next/link";
 
 interface CategorieOperaMatchIndicatorProps {
   tender: Tender;
@@ -17,21 +19,22 @@ export function CategorieOperaMatchIndicator({ tender, userId }: CategorieOperaM
     matchingCategories: string[];
     totalUserCategories: number;
     loading: boolean;
-  }>({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: true });
+    hasAzienda: boolean;
+  }>({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: true, hasAzienda: false });
 
   useEffect(() => {
     async function checkMatch() {
       if (!userId || !tender.categorieOpera || tender.categorieOpera.length === 0) {
-        setMatchData({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: false });
+        setMatchData({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: false, hasAzienda: false });
         return;
       }
 
       try {
         const result = await checkCategorieOperaMatch(tender.categorieOpera, userId);
-        setMatchData({ ...result, loading: false });
+        setMatchData({ ...result, loading: false, hasAzienda: result.totalUserCategories > 0 });
       } catch (error) {
         console.error("Errore nella verifica delle categorie:", error);
-        setMatchData({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: false });
+        setMatchData({ hasMatch: false, matchingCategories: [], totalUserCategories: 0, loading: false, hasAzienda: false });
       }
     }
 
@@ -44,8 +47,63 @@ export function CategorieOperaMatchIndicator({ tender, userId }: CategorieOperaM
     );
   }
 
-  if (!userId || matchData.totalUserCategories === 0) {
-    return null;
+  // Call to action per utenti non loggati
+  if (!userId) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <LogIn className="text-blue-600 mr-2" size={18} />
+            <div>
+              <div className="text-sm font-medium text-blue-800">
+                Verifica la compatibilità
+              </div>
+              <div className="text-xs text-blue-600">
+                Accedi per vedere se le tue categorie opera corrispondono a questa gara
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/auth/login">
+              <Button size="sm" variant="outline" className="border-blue-300 text-blue-600 hover:bg-blue-50">
+                Accedi
+              </Button>
+            </Link>
+            <Link href="/auth/register">
+              <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                Registrati
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Call to action per utenti loggati senza azienda
+  if (userId && matchData.totalUserCategories === 0) {
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Building className="text-orange-600 mr-2" size={18} />
+            <div>
+              <div className="text-sm font-medium text-orange-800">
+                Completa il tuo profilo aziendale
+              </div>
+              <div className="text-xs text-orange-600">
+                Registra la tua azienda e le categorie opera per verificare la compatibilità
+              </div>
+            </div>
+          </div>
+          <Link href="/profile">
+            <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+              Completa Profilo
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!matchData.hasMatch) {
