@@ -65,6 +65,15 @@ export interface TenderFilters {
 }
 
 // Aggiungi questi tipi al file types.ts
+// Aggiungi questo tipo per l'azienda
+export interface Azienda {
+  id: number;
+  ragione_sociale: string;
+  citta?: string;
+  regione?: string;
+}
+
+// Aggiorna il tipo AtiRichiesta
 export interface AtiRichiesta {
   id: number;
   bando_id: number;
@@ -75,6 +84,7 @@ export interface AtiRichiesta {
   note_aggiuntive?: string;
   categorie_offerte: AtiCategoriaOfferta[];
   categorie_cercate: AtiCategoriaCercata[];
+  azienda?: Azienda; // Aggiunto per il join con la tabella azienda
 }
 
 export interface AtiCategoriaOfferta {

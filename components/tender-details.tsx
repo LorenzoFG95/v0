@@ -351,7 +351,8 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
                             {/* Badge ATI - mostra solo se ci sono offerte */}
                             <AtiOfferteIndicator 
                               categoria={categoria} 
-                              bandoId={tender.id} 
+                              bandoId={tender.id}
+                              bandoDescrizione={tender.descrizione}
                             />
                           </div>
                         </div>
