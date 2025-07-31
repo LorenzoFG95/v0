@@ -56,11 +56,11 @@ export function CategorieOperaMatchIndicator({ tender, userId }: CategorieOperaM
             <LogIn className="text-blue-600 mr-2" size={18} />
             <div>
               <div className="text-sm font-medium text-blue-800">
-                Verifica la compatibilità
+                Accedi per trovare un azienda partner in possesso dei requisiti mancanti
               </div>
-              <div className="text-xs text-blue-600">
+              {/* <div className="text-xs text-blue-600">
                 Accedi per vedere se le tue categorie opera corrispondono a questa gara
-              </div>
+              </div> */}
             </div>
           </div>
           <div className="flex gap-2">
