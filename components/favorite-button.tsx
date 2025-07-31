@@ -94,15 +94,15 @@ export function FavoriteButton({ tenderId, className }: FavoriteButtonProps) {
 
   return (
     <Button
-      variant={favorite ? "default" : "outline"}
+      variant="outline"
       size="sm"
       onClick={handleClick}
       disabled={loading || authLoading}
-      className={`${favorite ? "bg-red-500 hover:bg-red-600" : ""} ${className || ""}`}
+      className={`${favorite ? "border-red-500 text-red-500 hover:bg-red-50" : ""} ${className || ""}`}
     >
       <Bookmark 
         size={16} 
-        className={`mr-1 ${favorite ? "fill-white" : ""} ${loading ? "animate-pulse" : ""}`} 
+        className={`mr-1 ${favorite ? "fill-red-500" : ""} ${loading ? "animate-pulse" : ""}`} 
       />
       {loading 
         ? "Caricamento..." 
