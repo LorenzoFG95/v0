@@ -54,14 +54,21 @@ export function AtiOfferteIndicator({ categoria, bandoId, bandoDescrizione = "" 
 
   return (
     <>
-      <Badge 
-        variant="outline" 
-        className="ml-2 bg-green-50 border-green-300 text-green-700 hover:bg-green-100 cursor-pointer transition-colors"
-        onClick={handleClick}
-        title="Clicca per vedere le richieste ATI"
-      >
-        {offerteCount} ATI
-      </Badge>
+      <div className="relative inline-flex items-center">
+        <Badge 
+          variant="outline" 
+          className="ml-2 bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 cursor-pointer transition-colors"
+          onClick={handleClick}
+          title={`Ci sono ${offerteCount} aziende che offrono questa categoria per collaborare in ATI`}
+        >
+          ATI
+        </Badge>
+        
+        {/* Pallino di notifica stile WhatsApp */}
+        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-sm">
+          {offerteCount}
+        </div>
+      </div>
       
       <AtiRequestsListModal
         isOpen={showModal}
