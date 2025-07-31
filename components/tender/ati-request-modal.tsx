@@ -434,7 +434,7 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || (formData.categorieOfferte.length === 0 && formData.categorieCercate.length === 0) || !privacyConsent}
+            disabled={isSubmitting || formData.categorieOfferte.length === 0 || formData.categorieCercate.length === 0 || !privacyConsent}
             className="flex items-center gap-2"
           >
             {isSubmitting ? (
