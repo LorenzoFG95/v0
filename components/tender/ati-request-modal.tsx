@@ -48,14 +48,16 @@ export function AtiRequestModal({ tender, userId, isOpen, onClose }: AtiRequestM
   const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const classificazioni = [
-    { value: 'I', label: 'I fascia - fino a 258.000 €' },
-    { value: 'II', label: 'II fascia - fino a 516.000 €' },
-    { value: 'III', label: 'III fascia - fino a 1.033.000 €' },
-    { value: 'IV', label: 'IV fascia - fino a 2.582.000 €' },
-    { value: 'V', label: 'V fascia - fino a 5.165.000 €' },
-    { value: 'VI', label: 'VI fascia - fino a 10.329.000 €' },
-    { value: 'VII', label: 'VII fascia - fino a 15.494.000 €' },
-    { value: 'VIII', label: 'VIII fascia - senza limiti' }
+    { value: 'I', label: 'I - fino a 258.000 €' },
+    { value: 'II', label: 'II - fino a 516.000 €' },
+    { value: 'III', label: 'III - fino a 1.033.000 €' },
+    { value: 'III-bis', label: 'III bis - fino a 1.500.000 €' },
+    { value: 'IV', label: 'IV - fino a 2.582.000 €' },
+    { value: 'IV-bis', label: 'IV bis - fino a 3.500.000 €' },
+    { value: 'V', label: 'V - fino a 5.165.000 €' },
+    { value: 'VI', label: 'VI - fino a 10.329.000 €' },
+    { value: 'VII', label: 'VII - fino a 15.494.000 €' },
+    { value: 'VIII', label: 'VIII - senza limiti' }
   ];
 
   // Verifica se l'utente ha già una richiesta ATI per questo bando
