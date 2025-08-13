@@ -645,6 +645,7 @@ if (tempFilters.categoriaOpera.length > 0) {
                     <SelectItem value="attiva">Attiva</SelectItem>
                     <SelectItem value="in-scadenza">In scadenza</SelectItem>
                     <SelectItem value="scaduta">Scaduta</SelectItem>
+                    <SelectItem value="aggiudicata">Aggiudicata</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -820,12 +821,14 @@ if (tempFilters.categoriaOpera.length > 0) {
               filters.stato === "attiva" ? "bg-green-100 text-green-800" :
               filters.stato === "in-scadenza" ? "bg-yellow-100 text-yellow-800" :
               filters.stato === "scaduta" ? "bg-red-100 text-red-800" :
+              filters.stato === "aggiudicata" ? "bg-blue-100 text-blue-800" :
               "bg-orange-100 text-orange-800"
             }`}>
               Stato: {
                 filters.stato === "attiva" ? "Attiva" :
                 filters.stato === "in-scadenza" ? "In scadenza" :
                 filters.stato === "scaduta" ? "Scaduta" :
+                filters.stato === "aggiudicata" ? "Aggiudicata" :
                 filters.stato
               }
             </span>

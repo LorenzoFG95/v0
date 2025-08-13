@@ -23,16 +23,24 @@ export interface RUP {
   telefono?: string
 }
 
+export interface Aggiudicatario {
+  id: number
+  denominazione: string
+  codice_fiscale?: string
+  importo: number
+  data_aggiudicazione?: string
+}
+
 export interface Tender {
   id: string
-  cig?: string // Aggiunto il CIG
+  cig?: string
   titolo: string
   descrizione: string
   planificazione: string
   valore: number
-  importoSicurezza?: number // Campo aggiunto per gli oneri di sicurezza
+  importoSicurezza?: number
   pubblicazione: string
-  scadenza: string
+  scadenza: string | null
   inizioGara: string
   cpv: string
   categoria: string
@@ -43,7 +51,9 @@ export interface Tender {
   partecipanti?: number
   categorieOpera?: CategoriaOpera[]
   documentiDiGaraLink?: string
-  rup?: RUP // Nuovo campo per i dati del RUP
+  rup?: RUP
+  aggiudicato?: boolean // Nuovo campo per lo stato di aggiudicazione
+  aggiudicatari?: Aggiudicatario[] // Nuovo campo per i dati degli aggiudicatari
 }
 
 export interface TenderFilters {

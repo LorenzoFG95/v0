@@ -371,9 +371,9 @@ def fetch_multiple_cig_details(cigs: List[str]) -> Dict[str, Dict]:
 # SEZIONE 5 – CREAZIONE GARE E LOTTI
 # ---------------------------------------------------------------------------
 
-def get_lookup_maps() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int], Dict[str, int]]:
+def get_lookup_maps() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int], Dict[str, int], Dict[str, int]]:
     """
-    Recupera le mappe per natura_principale, criterio_aggiudicazione, stato_procedura e categoria_cpv.
+    Recupera le mappe per natura_principale, criterio_aggiudicazione, stato_procedura, categoria_cpv e tipo_procedura.
     Basato su unified_data_pipelineGPT.py
     """
     print("📖 Recupero mappe di lookup...")
@@ -414,8 +414,17 @@ def get_lookup_maps() -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int], D
     except Exception as exc:
         print(f"  ↳ errore recupero categoria_cpv: {exc}")
     
-    print(f"✔ Recuperate {len(natura_map)} nature, {len(criterio_map)} criteri, {len(stato_map)} stati, {len(cpv_map)} cpv")
-    return natura_map, criterio_map, stato_map, cpv_map
+    # Mappa per tipo_procedura (codice -> id)
+    tipo_procedura_map: Dict[str, int] = {}
+    try:
+        res = supabase.table("tipo_procedura").select("id,codice").execute()
+        for item in res.data:
+            tipo_procedura_map[item["codice"].lower()] = item["id"]
+    except Exception as exc:
+        print(f"  ↳ errore recupero tipo_procedura: {exc}")
+    
+    print(f"✔ Recuperate {len(natura_map)} nature, {len(criterio_map)} criteri, {len(stato_map)} stati, {len(cpv_map)} cpv, {len(tipo_procedura_map)} tipi procedura")
+    return natura_map, criterio_map, stato_map, cpv_map, tipo_procedura_map
 
 def create_ente_if_needed(denominazione: str, codice_fiscale: str) -> Optional[str]:
     """
@@ -492,7 +501,7 @@ def merge_data(cig_data: Dict) -> Dict:
         
     return merged
 
-def create_gara_and_lotto(cig_details: Dict, natura_map: Dict, criterio_map: Dict, stato_map: Dict, cpv_map: Dict) -> Optional[str]:
+def create_gara_and_lotto(cig_details: Dict, natura_map: Dict, criterio_map: Dict, stato_map: Dict, cpv_map: Dict, tipo_procedura_map: Dict) -> Optional[str]:
     """
     Crea gara e lotto nel database e restituisce l'ID del lotto.
     Basato su unified_data_pipelineGPT.py
@@ -566,12 +575,54 @@ def create_gara_and_lotto(cig_details: Dict, natura_map: Dict, criterio_map: Dic
             if cpv_code and cpv_code in cpv_map:
                 cpv_id = cpv_map.get(cpv_code)
         
+        # Mappa tipo procedura
+        tipo_procedura_id = None
+        tipo_scelta = bando_data.get('TIPO_SCELTA_CONTRAENTE', '').lower()
+        
+        # Dizionario di mappatura per tipo_procedura (come in unified_data_pipelineGPT.py)
+        tipo_procedura_mapping = {
+            "aperta": "open",
+            "open": "open",
+            "ristretta": "restricted",
+            "restricted": "restricted",
+            "negoziata": "negotiated",
+            "negotiated": "negotiated",
+            "dialogo": "competitive_dialogue",
+            "dialogue": "competitive_dialogue",
+            "competitive_dialogue": "competitive_dialogue",
+            "diretto": "direct",
+            "direct": "direct",
+            "affidamento": "direct",
+            "affidamento diretto": "direct"
+        }
+        
+        # Normalizza e cerca nella mappa
+        tipo_scelta_normalized = tipo_scelta.strip().lower()
+        
+        # Prima cerca corrispondenza esatta
+        if tipo_scelta_normalized in tipo_procedura_mapping:
+            mapped_code = tipo_procedura_mapping[tipo_scelta_normalized]
+            tipo_procedura_id = tipo_procedura_map.get(mapped_code)
+        else:
+            # Poi cerca corrispondenza parziale
+            for key, value in tipo_procedura_mapping.items():
+                if key in tipo_scelta_normalized:
+                    mapped_code = value
+                    tipo_procedura_id = tipo_procedura_map.get(mapped_code)
+                    break
+        
+        if not tipo_procedura_id:
+            print(f"  ⚠️ Tipo procedura non mappato: '{tipo_scelta}'")
+            # Usa open come default
+            tipo_procedura_id = tipo_procedura_map.get('open')
+        
         # Crea gara
         gara_data = {
             'ente_appaltante_id': ente_id,
             'natura_principale_id': natura_principale_id,
             'criterio_aggiudicazione_id': criterio_id,
             'stato_procedura_id': stato_id,
+            'tipo_procedura_id': tipo_procedura_id,  # Campo aggiunto
             'descrizione': bando_data.get('OGGETTO_GARA', ''),
             'importo_totale': bando_data.get('IMPORTO_COMPLESSIVO_GARA'),
             'importo_sicurezza': bando_data.get('IMPORTO_SICUREZZA'),
@@ -675,20 +726,21 @@ def process_aggiudicatari(aggiudicatari_by_cig: Dict[str, List[Dict]]) -> Dict[s
         print(f"\n\n📥 Download dettagli per {len(missing_cigs)} CIG mancanti...")
         cig_details_map = fetch_multiple_cig_details(missing_cigs)
         
-        # Recupera mappe lookup
-        natura_map, criterio_map, stato_map, cpv_map = get_lookup_maps()
+        # Recupera mappe lookup - CORREZIONE: aggiunto tipo_procedura_map
+        natura_map, criterio_map, stato_map, cpv_map, tipo_procedura_map = get_lookup_maps()
         
         # Crea nuovi CIG
         for cig in missing_cigs:
             try:
                 if cig in cig_details_map:
-                    # Crea gara e lotto
+                    # Crea gara e lotto - CORREZIONE: aggiunto tipo_procedura_map
                     lotto_id = create_gara_and_lotto(
                         cig_details_map[cig], 
                         natura_map, 
                         criterio_map, 
                         stato_map,
-                        cpv_map
+                        cpv_map,
+                        tipo_procedura_map
                     )
                     
                     if lotto_id:

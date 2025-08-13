@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { Calendar, Euro, Bookmark, Hash, MapPin, ExternalLink } from "lucide-react"
+import { Calendar, Euro, Bookmark, Hash, MapPin, ExternalLink, CheckCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
@@ -25,7 +25,7 @@ interface TenderCardProps {
 // Funzione per determinare la variante del badge in base alla natura principale
 function getNaturaBadgeVariant(natura?: string): "lavori" | "forniture" | "servizi" | "outline" {
   if (!natura) return "outline"
-  
+
   switch (natura.toLowerCase()) {
     case "lavori":
       return "lavori" // bordo blu
@@ -43,30 +43,30 @@ function getDeadlineStyle(deadlineDate: string): { color: string; text: string }
   const today = new Date();
   const deadline = new Date(deadlineDate);
   const oneWeek = 7 * 24 * 60 * 60 * 1000; // Una settimana in millisecondi
-  
+
   // Rimuovi l'orario per confrontare solo le date
   today.setHours(0, 0, 0, 0);
   deadline.setHours(0, 0, 0, 0);
-  
+
   const timeDiff = deadline.getTime() - today.getTime();
-  
+
   if (timeDiff < 0) {
     // Scadenza passata
-    return { 
-      color: "text-red-600 bg-red-50", 
-      text: "Scaduta il" 
+    return {
+      color: "text-red-600 bg-red-50",
+      text: "Scaduta il"
     };
   } else if (timeDiff <= oneWeek) {
     // Scadenza entro una settimana
-    return { 
-      color: "text-yellow-600 bg-yellow-50", 
-      text: "Scade" 
+    return {
+      color: "text-yellow-600 bg-yellow-50",
+      text: "Scade"
     };
   } else {
     // Scadenza oltre una settimana (default)
-    return { 
-      color: "text-green-600 bg-green-50", 
-      text: "Scade" 
+    return {
+      color: "text-green-600 bg-green-50",
+      text: "Scade"
     };
   }
 }
@@ -75,7 +75,7 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
   const { user } = useAuth()
   const [favorite, setFavorite] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   // Carica lo stato iniziale dei preferiti
   useEffect(() => {
     const loadFavoriteStatus = async () => {
@@ -86,21 +86,21 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
         console.error('Errore nel caricamento dello stato preferiti:', error)
       }
     }
-    
+
     loadFavoriteStatus()
   }, [tender.id, user])
-  
+
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    
+
     if (isLoading) return
-    
+
     setIsLoading(true)
-    
+
     try {
       const success = await toggleFavorite(tender.id, user)
-      
+
       if (success) {
         setFavorite(!favorite)
         // Chiama la callback se fornita
@@ -114,16 +114,26 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
       setIsLoading(false)
     }
   }
-  
+
   // Determina la natura principale dal campo categoria se non è disponibile direttamente
   const naturaPrincipale = tender.naturaPrincipale || (
     tender.categoria?.toLowerCase().includes("lavori") ? "Lavori" :
-    tender.categoria?.toLowerCase().includes("fornitur") ? "Forniture" :
-    tender.categoria?.toLowerCase().includes("servizi") ? "Servizi" : undefined
+      tender.categoria?.toLowerCase().includes("fornitur") ? "Forniture" :
+        tender.categoria?.toLowerCase().includes("servizi") ? "Servizi" : undefined
   )
-  
+
   // Determina lo stile della scadenza
   const deadlineStyle = getDeadlineStyle(tender.scadenza);
+
+  // Funzione per formattare la valuta
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('it-IT', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
 
   return (
     <Card className="h-full hover:shadow-md transition-shadow flex flex-col">
@@ -140,36 +150,62 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
             )}
           </div>
           <div className="flex items-center gap-2">
-            <HoverCard>
-              <HoverCardTrigger asChild>
-                <div className={`text-sm font-medium ${deadlineStyle.color} px-2 py-1 rounded-md cursor-help`}>
-                  {deadlineStyle.text}: {formatDate(tender.scadenza)}
-                </div>
-              </HoverCardTrigger>
-              <HoverCardContent className="w-auto">
-                <div className="space-y-1">
-                  <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
-                </div>
-              </HoverCardContent>
-            </HoverCard>
+            {tender.scadenza && (
+              <HoverCard>
+                <HoverCardTrigger asChild>
+                  <div className={`text-sm font-medium ${deadlineStyle.color} px-2 py-1 rounded-md cursor-help`}>
+                    {deadlineStyle.text}: {formatDate(tender.scadenza)}
+                  </div>
+                </HoverCardTrigger>
+                <HoverCardContent className="w-auto">
+                  <div className="space-y-1">
+                    <p>Pubblicato il: {formatDate(tender.pubblicazione)}</p>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
+            )}
             {showFavoriteButton && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleFavoriteClick} 
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleFavoriteClick}
                 className="h-8 w-8"
                 disabled={isLoading}
               >
-                <Bookmark 
-                  size={18} 
-                  className={`${favorite ? "fill-red-500 text-red-500" : ""} ${isLoading ? "opacity-50" : ""}`} 
+                <Bookmark
+                  size={18}
+                  className={`${favorite ? "fill-red-500 text-red-500" : ""} ${isLoading ? "opacity-50" : ""}`}
                 />
               </Button>
             )}
           </div>
         </div>
         <h3 className="font-bold text-lg line-clamp-2">{tender.stazioneAppaltante.nome}</h3>
-        
+
+        {tender.aggiudicato && tender.aggiudicatari && tender.aggiudicatari.length > 0 && (
+          <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 mb-3">
+            <div className="flex items-center text-sky-700 text-sm font-medium mb-2">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              <span>Aggiudicato</span>
+            </div>
+            <div className="space-y-2">
+              {tender.aggiudicatari.map((aggiudicatario, index) => (
+                <div key={aggiudicatario.id || index} className="text-sm">
+                  <div className="font-medium text-sky-800">
+                    {aggiudicatario.denominazione}
+                  </div>
+                  <div className="text-sky-600 flex items-center gap-4">
+                    <span>Offerta: {formatCurrency(aggiudicatario.importo)}</span>
+                    {aggiudicatario.data_aggiudicazione && (
+                      <span>Data: {new Date(aggiudicatario.data_aggiudicazione).toLocaleDateString('it-IT')}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Aggiungiamo l'informazione sul luogo qui */}
         {(tender.stazioneAppaltante.regione || tender.stazioneAppaltante.citta) && (
           <div className="flex items-center text-sm text-gray-600 mt-1">
@@ -184,7 +220,7 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
           </div>
         )}
       </CardHeader>
-      
+
       <CardContent className="pb-2 flex-grow">
         <p className="text-sm text-gray-600 line-clamp-2 mb-4">{tender.descrizione}</p>
 
@@ -210,7 +246,7 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
           </div>
           <span className="ml-2 font-medium">{formatCurrency(tender.valore)}</span>
         </div>
-        
+
         {/* Mostra categorie opera se disponibili, altrimenti mostra CPV */}
         {tender.categorieOpera && tender.categorieOpera.length > 0 ? (
           <div className="mt-3">
@@ -219,61 +255,61 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
                 .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
                 .slice(0, 4) // Limita a 4 categorie
                 .map((categoria, index) => (
-                <HoverCard key={index}>
-                  <HoverCardTrigger asChild>
-                    <Badge 
-                      variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
-                      className="cursor-help"
-                    >
-                    {categoria.id_categoria}
-                    </Badge>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-semibold">
-                        {categoria.descrizione_tipo_categoria || 
-                          (categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile")}
-                      </h4>
-                      <p className="text-sm">{categoria.descrizione}</p>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              ))}
-              
+                  <HoverCard key={index}>
+                    <HoverCardTrigger asChild>
+                      <Badge
+                        variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                        className="cursor-help"
+                      >
+                        {categoria.id_categoria}
+                      </Badge>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold">
+                          {categoria.descrizione_tipo_categoria ||
+                            (categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile")}
+                        </h4>
+                        <p className="text-sm">{categoria.descrizione}</p>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                ))}
+
               {/* Badge +x per le categorie aggiuntive */}
               {tender.categorieOpera
                 .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
                 .length > 4 && (
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <Badge variant="outline" className="cursor-help">
-                      +{tender.categorieOpera
-                        .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
-                        .length - 4}
-                    </Badge>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-semibold">Altre categorie</h4>
-                      <div className="flex flex-wrap gap-1">
-                        {tender.categorieOpera
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Badge variant="outline" className="cursor-help">
+                        +{tender.categorieOpera
                           .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
-                          .slice(4)
-                          .map((categoria, index) => (
-                            <Badge 
-                              key={index}
-                              variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
-                              className="mr-1 mb-1"
-                            >
-                              {categoria.id_categoria}: {categoria.descrizione_tipo_categoria || 
-                                (categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile")}
-                            </Badge>
-                          ))}
+                          .length - 4}
+                      </Badge>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold">Altre categorie</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {tender.categorieOpera
+                            .filter(categoria => categoria.id_categoria.toLowerCase() !== 'fs' && categoria.id_categoria.toLowerCase() !== 'fb')
+                            .slice(4)
+                            .map((categoria, index) => (
+                              <Badge
+                                key={index}
+                                variant={categoria.cod_tipo_categoria === "P" ? "default" : "secondary"}
+                                className="mr-1 mb-1"
+                              >
+                                {categoria.id_categoria}: {categoria.descrizione_tipo_categoria ||
+                                  (categoria.cod_tipo_categoria === "P" ? "Prevalente" : "Scorporabile")}
+                              </Badge>
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              )}
+                    </HoverCardContent>
+                  </HoverCard>
+                )}
             </div>
           </div>
         ) : (

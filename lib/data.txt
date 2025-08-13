@@ -1,0 +1,121 @@
+1. mapDatabaseToTender() - Riga 5
+   → Converte dati DB in formato Tender
+   → Input: dbData + vari dati correlati
+   → Output: Tender object
+
+2. getAggiudicatariForLotto() - Riga 49
+   → Recupera aggiudicatari per un lotto specifico
+   → Input: supabase, lottoId
+   → Output: Aggiudicatario[]
+
+3. checkIfLottoHasAggiudicatari() - Riga 69
+   → Verifica se un lotto ha aggiudicatari
+   → Input: supabase, lottoId
+   → Output: {hasAggiudicatari, aggiudicatari}
+
+4. tableExists() - Riga 83
+   → Verifica esistenza tabella
+   → Input: supabase, tableName
+   → Output: boolean
+
+   5. getTenders() - Riga 103 [FUNZIONE GIGANTE - 528 righe!]
+   → Recupera lista gare con filtri e paginazione
+   → Input: filters object complesso
+   → Output: {tenders, total}
+   → PROBLEMA: Troppo complessa, gestisce tutto
+
+6. getTenderById() - Riga 633
+   → Recupera singola gara per ID
+   → Input: id string
+   → Output: Tender | undefined
+
+7. getTendersByIds() - Riga 806
+   → Recupera multiple gare per array di IDs
+   → Input: ids string[]
+   → Output: Tender[]
+
+   8. getEntiAppaltanti() - Riga 882
+   → Lista enti appaltanti
+   → Output: {id, nome}[]
+
+9. getCategorieNatura() - Riga 915
+   → Lista categorie natura
+   → Output: {id, descrizione}[]
+
+10. getCategorieOpera() - Riga 949
+    → Lista categorie opera
+    → Output: {id, descrizione, id_categoria}[]
+
+11. getCriterioAggiudicazione() - Riga 987
+    → Lista criteri aggiudicazione
+    → Output: {id, descrizione}[]
+
+12. getRegioni() - Riga 1024
+    → Lista regioni
+    → Output: {regione}[]
+
+13. getCittaByRegione() - Riga 1036
+    → Lista città per regione
+    → Input: regione string
+    → Output: {citta}[]
+
+14. getTipiProcedura() - Riga 1071
+    → Lista tipi procedura
+    → Output: {id, descrizione}[]
+
+    15. getAziendaCategorieOpera() - Riga 1103
+    → Categorie opera di un'azienda
+    → Input: aziendaId
+    → Output: string[]
+
+16. saveAziendaCategorieOpera() - Riga 1127
+    → Salva categorie opera azienda
+    → Input: aziendaId, categorieIds
+    → Output: void
+
+17. saveAziendaCategorieOperaConClassificazione() - Riga 1166
+    → Salva categorie con classificazione
+    → Input: aziendaId, categorieConClassificazione
+    → Output: void
+
+18. getAziendaCategorieOperaConClassificazione() - Riga 1209
+    → Recupera categorie con classificazione
+    → Input: aziendaId
+    → Output: {categoriaId, classificazione}[]
+
+19. getUserAzienda() - Riga 1239
+    → Dati azienda dell'utente
+    → Input: userId
+    → Output: {id, ragione_sociale} | null
+
+20. checkCategorieOperaMatch() - Riga 1269
+    → Verifica match categorie opera
+    → Input: tenderCategorieOpera, userId
+    → Output: {hasMatch, matchingCategories, totalUserCategories}
+
+    21. createAtiRichiesta() - Riga 1335
+    → Crea richiesta ATI
+    → Input: atiData, userId
+    → Output: number (ID)
+
+22. getAtiRichiesteByBando() - Riga 1434
+    → Richieste ATI per bando
+    → Input: bandoId
+    → Output: AtiRichiesta[]
+
+23. getAtiRichiesteByAzienda() - Riga 1507
+    → Richieste ATI per azienda
+    → Input: userId
+    → Output: AtiRichiesta[]
+
+24. getAtiOfferteCountByCategoria() - Riga 1547
+    → Conteggio offerte ATI per categoria
+    → Input: bandoId
+    → Output: Record<string, number>
+
+25. hasAtiRichiestaForBando() - Riga 1591
+    → Verifica se esiste richiesta ATI per bando
+    → Input: bandoId, userId
+    → Output: boolean
+
+    

@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/client"
-import type { Tender, AtiRichiesta, AtiRichiestaForm } from "./types"
+import type { Tender, AtiRichiesta, AtiRichiestaForm, Aggiudicatario } from "./types"
 
 // Funzione per convertire i dati dal database al formato dell'applicazione
 function mapDatabaseToTender(
@@ -10,6 +10,7 @@ function mapDatabaseToTender(
   naturaPrincipaleData?: any,
   criterioAggiudicazioneData?: any,
   tipoProceduraData?: any,
+  aggiudicatariData?: { hasAggiudicatari: boolean, aggiudicatari: Aggiudicatario[] },
 ): Tender {
   return {
     id: dbData.id.toString(),
@@ -19,26 +20,62 @@ function mapDatabaseToTender(
     descrizione: dbData.descrizione || "Descrizione non disponibile",
     planificazione: "Pianificazione",
     valore: lottoData?.valore || dbData.importo_totale || 0,
-    importoSicurezza: dbData.importo_sicurezza || 0, // Mappatura del campo importo_sicurezza
+    importoSicurezza: dbData.importo_sicurezza || 0,
     pubblicazione: dbData.data_pubblicazione || new Date().toISOString(),
-    scadenza: dbData.scadenza_offerta || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    scadenza: dbData.scadenza_offerta || null,
     inizioGara: dbData.data_pubblicazione || new Date().toISOString(),
     cpv: cpvData ? cpvData.codice : "CPV non specificato",
     categoria: cpvData ? cpvData.descrizione : "Non specificata",
     naturaPrincipale: naturaPrincipaleData ? naturaPrincipaleData.descrizione : undefined,
     criterioAggiudicazione: criterioAggiudicazioneData ? criterioAggiudicazioneData.descrizione : "Offerta economicamente più vantaggiosa",
-    procedura: tipoProceduraData ? tipoProceduraData.descrizione : "Procedura aperta", // Usa il valore dal database
+    procedura: tipoProceduraData ? tipoProceduraData.descrizione : "Procedura aperta",
     stazioneAppaltante: {
       id: enteData?.id?.toString() || "0",
       nome: enteData?.denominazione || "Stazione appaltante non specificata",
       contatto: enteData?.contatto || "",
       email: enteData?.email || "",
       indirizzo: enteData?.indirizzo || "",
-      regione: enteData?.regione || "",  // Mappatura del campo regione
-      citta: enteData?.citta || "",      // Mappatura del campo citta
+      regione: enteData?.regione || "",
+      citta: enteData?.citta || "",
     },
     partecipanti: 0,
-    documentiDiGaraLink: dbData.documenti_di_gara_link || undefined, 
+    documentiDiGaraLink: dbData.documenti_di_gara_link || undefined,
+    aggiudicato: aggiudicatariData?.hasAggiudicatari || false,
+    aggiudicatari: aggiudicatariData?.aggiudicatari || [],
+  }
+}
+
+// Funzione per recuperare gli aggiudicatari di un lotto
+async function getAggiudicatariForLotto(supabase: any, lottoId: number): Promise<Aggiudicatario[]> {
+  try {
+    const { data, error } = await supabase
+      .from("aggiudicatario")
+      .select("id, denominazione, codice_fiscale, importo, data_aggiudicazione")
+      .eq("lotto_id", lottoId);
+
+    if (error) {
+      console.error("Errore nel recupero aggiudicatari:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Errore nel recupero aggiudicatari:", error);
+    return [];
+  }
+}
+
+// Aggiorna la funzione checkIfLottoHasAggiudicatari per restituire anche i dati
+async function checkIfLottoHasAggiudicatari(supabase: any, lottoId: number): Promise<{ hasAggiudicatari: boolean, aggiudicatari: Aggiudicatario[] }> {
+  try {
+    const aggiudicatari = await getAggiudicatariForLotto(supabase, lottoId);
+    return {
+      hasAggiudicatari: aggiudicatari.length > 0,
+      aggiudicatari
+    };
+  } catch (error) {
+    console.error("Errore nel controllo aggiudicatari:", error);
+    return { hasAggiudicatari: false, aggiudicatari: [] };
   }
 }
 
@@ -49,9 +86,9 @@ async function tableExists(supabase: any, tableName: string): Promise<boolean> {
     if (error) {
       console.error(`Errore nella verifica della tabella ${tableName}:`, error);
       // Verifica se l'errore è di connessione
-      if (error.message?.includes("getaddrinfo failed") || 
-          error.message?.includes("connection") ||
-          error.message?.includes("network")) {
+      if (error.message?.includes("getaddrinfo failed") ||
+        error.message?.includes("connection") ||
+        error.message?.includes("network")) {
         console.error("Errore di connessione a Supabase. Verificare le credenziali e la connessione di rete.");
       }
     }
@@ -73,7 +110,7 @@ export async function getTenders(filters: {
   endDate?: string;
   minValue?: number;
   maxValue?: number;
-  criterioAggiudicazione?: string; 
+  criterioAggiudicazione?: string;
   regione?: string;  // Nuovo campo
   citta?: string;    // Nuovo campo
   tipoProcedura?: string; // Nuovo campo
@@ -113,64 +150,64 @@ export async function getTenders(filters: {
 
     // Se abbiamo un filtro per categoriaOpera, otteniamo prima gli ID delle gare che corrispondono alla categoria
     let gareIdsWithCategoriaOpera: number[] | null = null;
-    
+
     if (categoriaOpera && categoriaOpera.length > 0) {
       // Otteniamo gli ID numerici delle categorie opera dai loro codici
       const { data: categorieOperaData, error: categorieOperaLookupError } = await supabase
         .from("categoria_opera")
         .select("id, id_categoria")
         .in("id_categoria", categoriaOpera);
-        
+
       if (categorieOperaLookupError || !categorieOperaData || categorieOperaData.length === 0) {
         console.error("Errore nel recupero degli ID delle categorie opera:", categorieOperaLookupError);
         return { tenders: [], total: 0 };
       }
-      
+
       // Estraiamo gli ID numerici delle categorie
       const categorieOperaIds = categorieOperaData.map(cat => cat.id);
-      
+
       // Costruiamo una query per ottenere i lotti con le categorie opera specificate
       let categoriaOperaQuery = supabase
         .from("lotto_categoria_opera")
         .select("lotto_id, categoria_opera_id, ruolo")
         .in("categoria_opera_id", categorieOperaIds);
-      
+
       // Se soloPrevalente è true, filtriamo solo per categorie prevalenti
       if (soloPrevalente) {
         categoriaOperaQuery = categoriaOperaQuery.eq("ruolo", "P");
       }
-      
+
       const { data: lottiWithCategoria, error: categoriaError } = await categoriaOperaQuery;
-      
+
       if (categoriaError) {
         console.error("Errore nel recupero dei lotti con categoria opera:", categoriaError);
         return { tenders: [], total: 0 };
       }
-      
+
       if (!lottiWithCategoria || lottiWithCategoria.length === 0) {
         // Nessun lotto corrisponde al filtro
         return { tenders: [], total: 0 };
       }
-      
+
       // Otteniamo gli ID dei lotti
       const lottiIds = lottiWithCategoria.map(item => item.lotto_id);
-      
+
       // Otteniamo le gare associate a questi lotti
       const { data: gareWithCategoria, error: gareError } = await supabase
         .from("lotto")
         .select("gara_id")
         .in("id", lottiIds);
-      
+
       if (gareError) {
         console.error("Errore nel recupero delle gare con categoria opera:", gareError);
         return { tenders: [], total: 0 };
       }
-      
+
       if (!gareWithCategoria || gareWithCategoria.length === 0) {
         // Nessuna gara corrisponde al filtro
         return { tenders: [], total: 0 };
       }
-      
+
       // Salviamo gli ID delle gare che corrispondono al filtro categoriaOpera
       gareIdsWithCategoriaOpera = gareWithCategoria.map(item => item.gara_id);
     }
@@ -187,10 +224,10 @@ export async function getTenders(filters: {
           .from("ente_appaltante")
           .select("id")
           .ilike("denominazione", `%${searchQuery}%`);
-        
+
         // Otteniamo gli ID degli enti che corrispondono alla ricerca
         const entiIds = !entiError && entiData ? entiData.map(ente => ente.id) : [];
-        
+
         // Costruiamo la query di ricerca
         dataQuery = dataQuery.or(
           `descrizione.ilike.%${searchQuery}%,` +
@@ -215,7 +252,7 @@ export async function getTenders(filters: {
     if (criterioAggiudicazione) {
       dataQuery = dataQuery.eq("criterio_aggiudicazione_id", criterioAggiudicazione);
     }
-    
+
     if (tipoProcedura) {
       dataQuery = dataQuery.eq("tipo_procedura_id", tipoProcedura);
     }
@@ -227,7 +264,7 @@ export async function getTenders(filters: {
     if (maxValue !== undefined) {
       dataQuery = dataQuery.lte("importo", maxValue);
     }
-    
+
     // Filtri per regione e città
     if (regione) {
       // Prima cerchiamo gli enti appaltanti nella regione specificata
@@ -235,7 +272,7 @@ export async function getTenders(filters: {
         .from("ente_appaltante")
         .select("id")
         .eq("regione", regione);
-      
+
       if (!entiRegioneError && entiRegione && entiRegione.length > 0) {
         const entiIds = entiRegione.map(ente => ente.id);
         dataQuery = dataQuery.in("ente_appaltante_id", entiIds);
@@ -244,14 +281,14 @@ export async function getTenders(filters: {
         return { tenders: [], total: 0 };
       }
     }
-    
+
     if (citta) {
       // Prima cerchiamo gli enti appaltanti nella città specificata
       const { data: entiCitta, error: entiCittaError } = await supabase
         .from("ente_appaltante")
         .select("id")
         .eq("citta", citta);
-      
+
       if (!entiCittaError && entiCitta && entiCitta.length > 0) {
         const entiIds = entiCitta.map(ente => ente.id);
         dataQuery = dataQuery.in("ente_appaltante_id", entiIds);
@@ -260,7 +297,7 @@ export async function getTenders(filters: {
         return { tenders: [], total: 0 };
       }
     }
-    
+
     // Applichiamo il filtro categoriaOpera se presente
     if (gareIdsWithCategoriaOpera) {
       dataQuery = dataQuery.in("id", gareIdsWithCategoriaOpera);
@@ -268,28 +305,28 @@ export async function getTenders(filters: {
 
     if (stato) {
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Rimuovi l'orario per confrontare solo le date
+      today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
-      
-      // Calcola la data di una settimana da oggi
+
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
       const nextWeekStr = nextWeek.toISOString().split('T')[0];
-      
+
       switch (stato) {
         case "attiva":
-          // Mostra tender non scaduti (scadenza > oggi)
           dataQuery = dataQuery.gt("scadenza_offerta", todayStr);
           break;
         case "in-scadenza":
-          // Mostra tender in scadenza entro una settimana (oggi < scadenza <= oggi+7giorni)
           dataQuery = dataQuery
             .gt("scadenza_offerta", todayStr)
             .lte("scadenza_offerta", nextWeekStr);
           break;
         case "scaduta":
-          // Mostra tender scaduti (scadenza <= oggi)
           dataQuery = dataQuery.lte("scadenza_offerta", todayStr);
+          break;
+        case "aggiudicata":
+          // Per i bandi aggiudicati, dobbiamo filtrare dopo aver recuperato i dati
+          // perché dobbiamo controllare la tabella aggiudicatario
           break;
       }
     }
@@ -325,12 +362,38 @@ export async function getTenders(filters: {
       }, {} as Record<number, any>);
     }
 
-    // Otteniamo le categorie opera per tutti i lotti
-    let categorieOperaMap: Record<number, any[]> = {};
-    
+    let aggiudicatariMap: Record<number, boolean> = {};
+    let aggiudicatariDataMap: Record<number, Aggiudicatario[]> = {};
+
     if (lottiData && lottiData.length > 0) {
       const lottiIds = lottiData.map(lotto => lotto.id).filter(id => id !== null && id !== undefined);
-      
+
+      if (lottiIds.length > 0) {
+        // Verifica per ogni lotto se ha aggiudicatari
+        const aggiudicatariPromises = lottiIds.map(async (lottoId) => {
+          const result = await checkIfLottoHasAggiudicatari(supabase, lottoId);
+          return { lottoId, hasAggiudicatari: result.hasAggiudicatari, aggiudicatari: result.aggiudicatari };
+        });
+
+        const aggiudicatariResults = await Promise.all(aggiudicatariPromises);
+        aggiudicatariMap = aggiudicatariResults.reduce((acc, result) => {
+          acc[result.lottoId] = result.hasAggiudicatari;
+          return acc;
+        }, {} as Record<number, boolean>);
+
+        aggiudicatariDataMap = aggiudicatariResults.reduce((acc, result) => {
+          acc[result.lottoId] = result.aggiudicatari;
+          return acc;
+        }, {} as Record<number, Aggiudicatario[]>);
+      }
+    }
+
+    // Otteniamo le categorie opera per tutti i lotti
+    let categorieOperaMap: Record<number, any[]> = {};
+
+    if (lottiData && lottiData.length > 0) {
+      const lottiIds = lottiData.map(lotto => lotto.id).filter(id => id !== null && id !== undefined);
+
       if (lottiIds.length > 0) {
         const { data: lottiCategorieData, error: lottiCategorieError } = await supabase
           .from("lotto_categoria_opera")
@@ -340,7 +403,7 @@ export async function getTenders(filters: {
         if (!lottiCategorieError && lottiCategorieData && lottiCategorieData.length > 0) {
           // Raggruppiamo le categorie per lotto_id
           const categorieIds = lottiCategorieData.map(item => item.categoria_opera_id);
-          
+
           const { data: categorieDetails, error: categorieDetailsError } = await supabase
             .from("categoria_opera")
             .select("*")
@@ -352,7 +415,7 @@ export async function getTenders(filters: {
               if (!categorieOperaMap[link.lotto_id]) {
                 categorieOperaMap[link.lotto_id] = [];
               }
-              
+
               const categoriaDetail = categorieDetails.find(cat => cat.id === link.categoria_opera_id);
               if (categoriaDetail) {
                 categorieOperaMap[link.lotto_id].push({
@@ -396,7 +459,7 @@ export async function getTenders(filters: {
           .select("*")
           .eq("id", lottoData.cpv_id)
           .single();
-    
+
         if (cpvError) {
           console.error("Errore nel recupero della categoria CPV:", cpvError);
           return { garaId: gara.id, cpvData: undefined };
@@ -423,7 +486,7 @@ export async function getTenders(filters: {
           .select("*")
           .eq("id", gara.natura_principale_id)
           .single();
-        
+
         if (naturaPrincipaleError) {
           console.error("Errore nel recupero della natura principale:", naturaPrincipaleError);
           return { garaId: gara.id, naturaPrincipaleData: undefined };
@@ -433,7 +496,7 @@ export async function getTenders(filters: {
       }
       return { garaId: gara.id, naturaPrincipaleData: undefined };
     });
-    
+
     const naturaPrincipaleResults = await Promise.all(naturaPrincipalePromises);
     const naturaPrincipaleMap = naturaPrincipaleResults.reduce((acc, result) => {
       if (result) {
@@ -450,7 +513,7 @@ export async function getTenders(filters: {
           .select("*")
           .eq("id", gara.criterio_aggiudicazione_id)
           .single();
-        
+
         if (criterioAggiudicazioneError) {
           console.error("Errore nel recupero del criterio di aggiudicazione:", criterioAggiudicazioneError);
           return { garaId: gara.id, criterioAggiudicazioneData: undefined };
@@ -477,7 +540,7 @@ export async function getTenders(filters: {
           .select("*")
           .eq("id", gara.tipo_procedura_id)
           .single();
-        
+
         if (tipoProceduraError) {
           console.error("Errore nel recupero del tipo di procedura:", tipoProceduraError);
           return { garaId: gara.id, tipoProceduraData: undefined };
@@ -496,6 +559,28 @@ export async function getTenders(filters: {
       return acc;
     }, {});
 
+    // Se il filtro è "aggiudicata", filtriamo i risultati dopo aver controllato gli aggiudicatari
+    let finalCount = count || 0;
+    if (stato === "aggiudicata" && lottiData && lottiData.length > 0) {
+      const gareConAggiudicatari = new Set<number>();
+      
+      // Utilizziamo la mappa già creata invece di rifare le query
+      for (const lotto of lottiData) {
+        if (aggiudicatariMap[lotto.id]) {
+          gareConAggiudicatari.add(lotto.gara_id);
+        }
+      }
+      
+      // Filtriamo le gare che hanno lotti con aggiudicatari
+      const gareDataFiltered = gareData.filter(gara => gareConAggiudicatari.has(gara.id));
+      
+      if (gareDataFiltered.length !== gareData.length) {
+        // Aggiorna i dati filtrati e il conteggio
+        gareData.splice(0, gareData.length, ...gareDataFiltered);
+        finalCount = gareDataFiltered.length;
+      }
+    }
+
     // Mappiamo i dati
     const mappedTenders = gareData.map((gara) => {
       const enteData = gara.ente_appaltante_id ? entiMap[gara.ente_appaltante_id] : undefined;
@@ -504,17 +589,24 @@ export async function getTenders(filters: {
       const naturaPrincipaleData = naturaPrincipaleMap[gara.id as keyof typeof naturaPrincipaleMap];
       const criterioAggiudicazioneData = criterioAggiudicazioneMap[gara.id as keyof typeof criterioAggiudicazioneMap];
       const tipoProceduraData = tipoProceduraMap[gara.id as keyof typeof tipoProceduraMap];
-      
+
+      // Correggiamo il parametro passato alla funzione mapDatabaseToTender
+      const aggiudicatariData = lottoData ? {
+        hasAggiudicatari: aggiudicatariMap[lottoData.id] || false,
+        aggiudicatari: aggiudicatariDataMap[lottoData.id] || []
+      } : { hasAggiudicatari: false, aggiudicatari: [] };
+
       const tender = mapDatabaseToTender(
-        gara, 
-        enteData, 
-        lottoData, 
-        cpvData, 
+        gara,
+        enteData,
+        lottoData,
+        cpvData,
         naturaPrincipaleData,
         criterioAggiudicazioneData,
-        tipoProceduraData
+        tipoProceduraData,
+        aggiudicatariData // Passiamo l'oggetto completo invece del solo booleano
       );
-      
+
       // Aggiungiamo le categorie opera se disponibili
       if (lottoData && categorieOperaMap[lottoData.id]) {
         tender.categorieOpera = categorieOperaMap[lottoData.id].sort((a, b) => {
@@ -524,12 +616,13 @@ export async function getTenders(filters: {
           return 0;
         });
       }
+
       return tender;
     });
-    
+
     return {
       tenders: mappedTenders,
-      total: count || 0
+      total: finalCount // Utilizziamo il conteggio corretto
     };
   } catch (error) {
     console.error("Errore generale nel recupero delle gare:", error);
@@ -604,21 +697,21 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
       .from("lotto_categoria_opera")
       .select("*, categoria_opera(*)")
       .eq("lotto_id", lottoData.id)
-      if (!categorieOperaError && categorieOpera) {
-        // Modifica qui: invece di estrarre solo categoria_opera, manteniamo anche il ruolo
-        categorieOperaData = categorieOpera.map((item) => ({
-          ...item.categoria_opera,
-          cod_tipo_categoria: item.ruolo,
-          descrizione_tipo_categoria: item.ruolo === 'P' ? 'Prevalente' : 'Scorporabile'
-        })).filter(Boolean)
-        
-        // Ordiniamo le categorie: prima le prevalenti, poi le scorporabili
-        categorieOperaData.sort((a, b) => {
-          if (a.cod_tipo_categoria === 'P' && b.cod_tipo_categoria !== 'P') return -1;
-          if (a.cod_tipo_categoria !== 'P' && b.cod_tipo_categoria === 'P') return 1;
-          return 0;
-        });
-      }
+    if (!categorieOperaError && categorieOpera) {
+      // Modifica qui: invece di estrarre solo categoria_opera, manteniamo anche il ruolo
+      categorieOperaData = categorieOpera.map((item) => ({
+        ...item.categoria_opera,
+        cod_tipo_categoria: item.ruolo,
+        descrizione_tipo_categoria: item.ruolo === 'P' ? 'Prevalente' : 'Scorporabile'
+      })).filter(Boolean)
+
+      // Ordiniamo le categorie: prima le prevalenti, poi le scorporabili
+      categorieOperaData.sort((a, b) => {
+        if (a.cod_tipo_categoria === 'P' && b.cod_tipo_categoria !== 'P') return -1;
+        if (a.cod_tipo_categoria !== 'P' && b.cod_tipo_categoria === 'P') return 1;
+        return 0;
+      });
+    }
 
     // Otteniamo la categoria CPV
     let cpvData = undefined
@@ -679,7 +772,7 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
     // Mappiamo i dati includendo le categorie opera
     const tender = mapDatabaseToTender(garaData, enteData, lottoData, cpvData, naturaPrincipaleData, criterioAggiudicazioneData, tipoProceduraData)
     tender.categorieOpera = categorieOperaData
-    
+
     // Otteniamo i dati del RUP
     let rupData = undefined
     const { data: rup, error: rupError } = await supabase
@@ -691,7 +784,7 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
     if (!rupError && rup) {
       rupData = rup
     }
-    
+
     // Aggiungiamo i dati del RUP
     if (rupData) {
       tender.rup = {
@@ -701,7 +794,7 @@ export async function getTenderById(id: string): Promise<Tender | undefined> {
         telefono: rupData.telefono
       }
     }
-    
+
     return tender
 
   } catch (error) {
@@ -739,13 +832,13 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
     // Carica gli enti appaltanti necessari
     const entiIds = [...new Set(gareData.map(gara => gara.ente_appaltante_id).filter(Boolean))];
     let entiMap: Record<number, any> = {};
-    
+
     if (entiIds.length > 0) {
       const { data: entiData, error: entiError } = await supabase
         .from("ente_appaltante")
         .select("*")
         .in("id", entiIds);
-      
+
       if (!entiError && entiData) {
         entiMap = entiData.reduce(
           (acc, ente) => ({ ...acc, [ente.id]: ente }),
@@ -757,13 +850,13 @@ export async function getTendersByIds(ids: string[]): Promise<Tender[]> {
     // Carica i tipi di procedura necessari
     const tipoProceduraIds = [...new Set(gareData.map(gara => gara.tipo_procedura_id).filter(Boolean))];
     let tipoProceduraMap: Record<number, any> = {};
-    
+
     if (tipoProceduraIds.length > 0) {
       const { data: tipoProceduraData, error: tipoProceduraError } = await supabase
         .from("tipo_procedura")
         .select("*")
         .in("id", tipoProceduraIds);
-      
+
       if (!tipoProceduraError && tipoProceduraData) {
         tipoProceduraMap = tipoProceduraData.reduce(
           (acc, tipo) => ({ ...acc, [tipo.id]: tipo }),
@@ -967,7 +1060,7 @@ export async function getCittaByRegione(regione: string): Promise<{ citta: strin
 
     // Deduplicare le città e filtrare le stringhe vuote
     const citta = [...new Set(data?.map(item => item.citta))].filter(citta => citta.trim() !== "");
-    
+
     return citta.map(citta => ({ citta })) || [];
   } catch (error) {
     console.error("Errore generale nel recupero delle città:", error)
@@ -1071,7 +1164,7 @@ export async function saveAziendaCategorieOpera(aziendaId: number, categorieIds:
 }
 
 export async function saveAziendaCategorieOperaConClassificazione(
-  aziendaId: number, 
+  aziendaId: number,
   categorieConClassificazione: Array<{ categoriaId: string; classificazione: string }>
 ): Promise<void> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -1217,7 +1310,7 @@ export async function checkCategorieOperaMatch(
     const tenderIdCategorie = tenderCategorieOpera.map(cat => cat.id_categoria);
 
     // Trova le categorie in comune
-    const matchingCategories = tenderIdCategorie.filter(tenderCat => 
+    const matchingCategories = tenderIdCategorie.filter(tenderCat =>
       aziendaIdCategorie.includes(tenderCat)
     );
 
@@ -1507,7 +1600,7 @@ export async function hasAtiRichiestaForBando(bandoId: number, userId: string): 
       .eq("bando_id", bandoId)
       .eq("azienda_richiedente_id", azienda.id)
       .eq("stato", "attiva");
-      // Rimuovi .single() qui
+    // Rimuovi .single() qui
 
     // Controlla se ci sono errori diversi da PGRST116
     if (error && error.code !== 'PGRST116') {

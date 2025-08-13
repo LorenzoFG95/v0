@@ -626,7 +626,8 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                     "competitive_dialogue": "competitive_dialogue",
                     "diretto": "direct",
                     "direct": "direct",
-                    "affidamento": "direct"
+                    "affidamento": "direct",
+                    "affidamento diretto": "direct" 
                 }
                 # Normalizza e cerca nella mappa
                 tipo_procedura_norm = tipo_procedura.lower()
@@ -667,6 +668,11 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                         print(f"  ↳ Rilevata manifestazione di interesse nelle pubblicazioni")
                         tipo_procedura_id = tipo_procedura_map.get("manifestazione_interesse")
                         print(f"  ↳ Tipo procedura aggiornato a manifestazione_interesse -> {tipo_procedura_id}")
+                
+                # Determina se è un affidamento diretto
+                is_affidamento_diretto = (
+                    tipo_procedura_mapping.get(tipo_procedura_norm) == "direct" if tipo_procedura_norm else False
+                )
                 
                 # Estrai informazioni sul RUP
                 rup_nome = None
@@ -723,7 +729,8 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             "ente_appaltante_id": ente_id,
             "descrizione": bando_json.get("OGGETTO_GARA"),
             "data_pubblicazione": info_bando.get("dataPubblicazione"),
-            "scadenza_offerta": bando_json.get("DATA_SCADENZA_OFFERTA"),
+            # Per affidamenti diretti, non impostare scadenza offerta
+            "scadenza_offerta": None if is_affidamento_diretto else bando_json.get("DATA_SCADENZA_OFFERTA"),
             "importo_totale": bando_json.get("IMPORTO_COMPLESSIVO_GARA"),
             "importo_sicurezza": bando_json.get("IMPORTO_SICUREZZA"),
             "valuta": "EUR",
@@ -792,7 +799,8 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
                 "id_appalto": info_bando.get("idAppalto"),
                 "codice_scheda": info_bando.get("codiceScheda"),
                 "data_pubblicazione": info_bando.get("dataPubblicazione"),
-                "data_scadenza": info_bando.get("dataScadenza"),
+                # Per affidamenti diretti, non impostare data scadenza
+                "data_scadenza": None if is_affidamento_diretto else info_bando.get("dataScadenza"),
                 "data_pcp": (info_bando.get("template") or [{}])[0]
                               .get("avviso", [{}])[0]
                               .get("dataPCP"),
@@ -815,7 +823,8 @@ def process_gare_e_lotti(bandi: List[Dict], enti_map: Dict[str, int], cat_map: D
             "valore": bando_json.get("IMPORTO_LOTTO")
                       or bando_json.get("IMPORTO_COMPLESSIVO_GARA"),
             "valuta": "EUR",
-            "termine_ricezione": bando_json.get("DATA_SCADENZA_OFFERTA"),
+            # Per affidamenti diretti, non impostare termine ricezione
+            "termine_ricezione": None if is_affidamento_diretto else bando_json.get("DATA_SCADENZA_OFFERTA"),
             "luogo_istat": bando_json.get("LUOGO_ISTAT"),
             "cpv_id": cpv_id,  
         }
