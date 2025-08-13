@@ -294,9 +294,7 @@ export function ClientDashboard({
       queryParams.append('categoria', filters.categoria);
     }
     
-    if (filters.stato !== 'all') {
-      queryParams.append('stato', filters.stato);
-    }
+    queryParams.append('stato', filters.stato);
     
     if (filters.startDate) {
       queryParams.append('startDate', filters.startDate);
@@ -466,9 +464,9 @@ if (tempFilters.categoriaOpera.length > 0) {
     queryParams.append('searchQuery', searchQuery.trim());
   }
   
-  if (tempFilters.categoriaOpera.length > 0) {
+  if (filters.categoriaOpera.length > 0) {
     // Aggiungiamo ogni categoria come parametro separato
-    tempFilters.categoriaOpera.forEach(cat => {
+    filters.categoriaOpera.forEach(cat => {
       queryParams.append('categoriaOpera', cat);
     });
   }
@@ -481,9 +479,7 @@ if (tempFilters.categoriaOpera.length > 0) {
     queryParams.append('categoria', filters.categoria);
   }
   
-  if (filters.stato !== 'all') {
     queryParams.append('stato', filters.stato);
-  }
   
   if (filters.startDate) {
     queryParams.append('startDate', filters.startDate);
@@ -501,14 +497,6 @@ if (tempFilters.categoriaOpera.length > 0) {
     queryParams.append('maxValue', filters.maxValue);
   }
   
-  // In handleSearch, applyFilters e changePage
-  if (filters.categoriaOpera.length > 0) {
-    // Aggiungiamo ogni categoria come parametro separato
-    filters.categoriaOpera.forEach(cat => {
-      queryParams.append('categoriaOpera', cat);
-    });
-  }
-  
   if (filters.criterioAggiudicazione !== 'all') {
     queryParams.append('criterioAggiudicazione', filters.criterioAggiudicazione);
   }
@@ -520,6 +508,11 @@ if (tempFilters.categoriaOpera.length > 0) {
   
   if (filters.citta !== 'all' && filters.citta !== '') {
     queryParams.append('citta', filters.citta);
+  }
+  
+  // Aggiungiamo il filtro per tipo procedura (mancava!)
+  if (filters.tipoProcedura !== 'all') {
+    queryParams.append('tipoProcedura', filters.tipoProcedura);
   }
   
   router.push(`${pathname}?${queryParams.toString()}`);

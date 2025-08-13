@@ -1,5 +1,6 @@
 import { Header } from "@/components/header"
-import { getTenders, getCategorieNatura, getCategorieOpera, getCriterioAggiudicazione, getRegioni, getTipiProcedura } from "@/lib/data"
+import { getTenders } from "@/lib/tender/core"
+import { getCategorieNatura, getCategorieOpera, getCriterioAggiudicazione, getRegioni, getTipiProcedura } from "@/lib/reference/lookup"
 import { DatabaseSetupGuide } from "@/components/database-setup-guide"
 import { ClientDashboard } from "@/components/client-dashboard"
 import { ConnectionStatus } from "@/components/connection-status";
