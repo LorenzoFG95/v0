@@ -190,16 +190,21 @@ export function TenderCard({ tender, showFavoriteButton = true, onFavoriteChange
             </div>
             <div className="space-y-2">
               {tender.aggiudicatari.map((aggiudicatario, index) => (
-                <div key={aggiudicatario.id || index} className="text-sm">
-                  <div className="font-medium text-sky-800">
-                    {aggiudicatario.denominazione}
-                  </div>
-                  <div className="text-sky-600 flex items-center gap-4">
-                    <span>Offerta: {formatCurrency(aggiudicatario.importo)}</span>
-                    {aggiudicatario.data_aggiudicazione && (
-                      <span>Data: {new Date(aggiudicatario.data_aggiudicazione).toLocaleDateString('it-IT')}</span>
-                    )}
-                  </div>
+                <div key={index} className="text-sm text-gray-600">
+                  <div className="font-medium">{aggiudicatario.denominazione}</div>
+                  <span>Offerta: {formatCurrency(aggiudicatario.importo)}</span>
+                  {aggiudicatario.ribasso !== null && aggiudicatario.ribasso !== undefined && (
+                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                      aggiudicatario.ribasso > 0 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      Ribasso: {aggiudicatario.ribasso > 0 ? '+' : ''}{aggiudicatario.ribasso.toFixed(2)}%
+                    </span>
+                  )}
+                  {aggiudicatario.data_aggiudicazione && (
+                    <span>Data: {new Date(aggiudicatario.data_aggiudicazione).toLocaleDateString('it-IT')}</span>
+                  )}
                 </div>
               ))}
             </div>

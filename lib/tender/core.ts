@@ -46,6 +46,25 @@ export function mapDatabaseToTender(
   tipoProceduraData?: any,
   aggiudicatariData?: { hasAggiudicatari: boolean, aggiudicatari: Aggiudicatario[] },
 ): Tender {
+  // Calcola il valore base del lotto per il calcolo del ribasso
+  const valoreBase = lottoData?.valore || dbData.importo_totale || 0;
+  
+  // Calcola il ribasso per ogni aggiudicatario se presenti
+  const aggiudicatariConRibasso = aggiudicatariData?.aggiudicatari?.map(aggiudicatario => {
+    let ribasso: number | undefined;
+    
+    
+    // Calcola il ribasso solo se abbiamo sia il valore base che l'importo dell'aggiudicatario
+    if (valoreBase > 0 && aggiudicatario.importo > 0) {
+      ribasso = Number((((valoreBase - aggiudicatario.importo) / valoreBase) * 100).toFixed(2));
+    }
+    
+    return {
+      ...aggiudicatario,
+      ribasso
+    };
+  }) || [];
+
   return {
     id: dbData.id.toString(),
     cig: dbData.cig || undefined,
@@ -53,7 +72,7 @@ export function mapDatabaseToTender(
       dbData.descrizione?.substring(0, 100) + "..." || "Titolo non disponibile",
     descrizione: dbData.descrizione || "Descrizione non disponibile",
     planificazione: "Pianificazione",
-    valore: lottoData?.valore || dbData.importo_totale || 0,
+    valore: valoreBase,
     importoSicurezza: dbData.importo_sicurezza || 0,
     pubblicazione: dbData.data_pubblicazione || new Date().toISOString(),
     scadenza: dbData.scadenza_offerta || null,
@@ -75,7 +94,7 @@ export function mapDatabaseToTender(
     partecipanti: 0,
     documentiDiGaraLink: dbData.documenti_di_gara_link || undefined,
     aggiudicato: aggiudicatariData?.hasAggiudicatari || false,
-    aggiudicatari: aggiudicatariData?.aggiudicatari || [],
+    aggiudicatari: aggiudicatariConRibasso,
   };
 }
 

@@ -436,3 +436,38 @@ export function TenderDetails({ tender }: TenderDetailsProps) {
     </div>
   );
 }
+
+// {tender.aggiudicatari && tender.aggiudicatari.length > 0 && (
+//   <div className="space-y-4">
+//     <h3 className="text-lg font-semibold">Aggiudicatari</h3>
+//     {tender.aggiudicatari.map((aggiudicatario, index) => (
+//       <div key={index} className="border rounded-lg p-4">
+//         <div className="font-medium text-lg">{aggiudicatario.denominazione}</div>
+//         <div className="text-sm text-gray-600 mt-1">
+//           CF: {aggiudicatario.codice_fiscale}
+//         </div>
+//         <div className="flex items-center gap-4 mt-2">
+//           <span className="font-semibold text-green-600">
+//             Importo: {formatCurrency(aggiudicatario.importo)}
+//           </span>
+//           {aggiudicatario.ribasso !== null && aggiudicatario.ribasso !== undefined && (
+//             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+//               aggiudicatario.ribasso > 0 
+//                 ? 'bg-green-100 text-green-800' 
+//                 : aggiudicatario.ribasso < 0
+//                 ? 'bg-red-100 text-red-800'
+//                 : 'bg-gray-100 text-gray-800'
+//             }`}>
+//               Ribasso: {aggiudicatario.ribasso > 0 ? '+' : ''}{aggiudicatario.ribasso.toFixed(2)}%
+//             </span>
+//           )}
+//         </div>
+//         {aggiudicatario.data_aggiudicazione && (
+//           <div className="text-sm text-gray-500 mt-1">
+//             Data aggiudicazione: {new Date(aggiudicatario.data_aggiudicazione).toLocaleDateString('it-IT')}
+//           </div>
+//         )}
+//       </div>
+//     ))}
+//   </div>
+// )}

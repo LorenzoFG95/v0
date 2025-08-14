@@ -26,9 +26,11 @@ export interface RUP {
 export interface Aggiudicatario {
   id: number
   denominazione: string
-  codice_fiscale?: string
-  importo: number
-  data_aggiudicazione?: string
+  codice_fiscale: string;
+  importo: number;
+  data_aggiudicazione?: string;
+  // Campo calcolato dinamicamente
+  ribasso?: number; // Percentuale di ribasso calcolata
 }
 
 export interface Tender {
