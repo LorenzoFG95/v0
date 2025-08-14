@@ -217,20 +217,22 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="partita_iva">Partita IVA</Label>
+                <Label htmlFor="partita_iva">Partita IVA *</Label>
                 <Input
                   id="partita_iva"
                   value={partitaIva}
                   onChange={(e) => setPartitaIva(e.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email_azienda">Email Azienda</Label>
+                <Label htmlFor="email_azienda">Email Azienda *</Label>
                 <Input
                   id="email_azienda"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -273,11 +275,12 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="regione">Regione</Label>
+                <Label htmlFor="regione">Regione *</Label>
                 <Input
                   id="regione"
                   value={regione}
                   onChange={(e) => setRegione(e.target.value)}
+                  required
                 />
               </div>
               <div className="space-y-2">
