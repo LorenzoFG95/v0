@@ -283,8 +283,39 @@ export async function getTenders(filters: TenderFilters = {}): Promise<{ tenders
           dataQuery = dataQuery.lte("scadenza_offerta", todayStr);
           break;
         case "aggiudicata":
-          // Per il filtro aggiudicata, dobbiamo gestirlo diversamente
-          // perché richiede join con altre tabelle
+          // Per il filtro aggiudicata, dobbiamo prima ottenere gli ID delle gare con aggiudicatari
+          const { data: lottiConAggiudicatari, error: aggiudicatariError } = await supabase
+            .from("aggiudicatario")
+            .select("lotto_id")
+            .not("lotto_id", "is", null);
+  
+          if (aggiudicatariError) {
+            console.error("Errore nel recupero dei lotti con aggiudicatari:", aggiudicatariError);
+            return { tenders: [], total: 0 };
+          }
+  
+          if (!lottiConAggiudicatari || lottiConAggiudicatari.length === 0) {
+            return { tenders: [], total: 0 };
+          }
+  
+          // Otteniamo gli ID delle gare associate a questi lotti
+          const lottiIds = [...new Set(lottiConAggiudicatari.map(item => item.lotto_id))];
+          const { data: gareConAggiudicatari, error: gareAggiudicateError } = await supabase
+            .from("lotto")
+            .select("gara_id")
+            .in("id", lottiIds);
+  
+          if (gareAggiudicateError) {
+            console.error("Errore nel recupero delle gare aggiudicate:", gareAggiudicateError);
+            return { tenders: [], total: 0 };
+          }
+  
+          if (!gareConAggiudicatari || gareConAggiudicatari.length === 0) {
+            return { tenders: [], total: 0 };
+          }
+  
+          const gareAggiudicateIds = [...new Set(gareConAggiudicatari.map(item => item.gara_id))];
+          dataQuery = dataQuery.in("id", gareAggiudicateIds);
           break;
       }
     }
@@ -292,7 +323,6 @@ export async function getTenders(filters: TenderFilters = {}): Promise<{ tenders
     // Eseguiamo la query per ottenere sia i dati che il conteggio
     const startIndex = (page - 1) * pageSize;
     const endIndex = page * pageSize - 1;
-
 
     const { data: gareData, count, error: gareError } = await dataQuery
       .order("data_pubblicazione", { ascending: false })
@@ -595,9 +625,9 @@ export async function getTenders(filters: TenderFilters = {}): Promise<{ tenders
 
     return {
       tenders: mappedTenders,
-      total: finalCount
+      total: count || 0  // Ora il count è corretto perché include il filtro aggiudicata
     };
-  } catch (error) {
+      } catch (error) {
     console.error("Errore generale nel recupero delle gare:", error);
     throw error;
   }
