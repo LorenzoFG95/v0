@@ -43,7 +43,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # Configurazioni download
 PAGE_SIZE = 100             # Dimensione pagina API
 MAX_WORKERS = 4             # Thread paralleli
-MAX_RESULTS = 100           # Limite massimo risultati
+MAX_RESULTS = 9999          # Limite massimo risultati
 BASE_TIMEOUT = 30           # Timeout richieste
 
 # Percorsi script e cache

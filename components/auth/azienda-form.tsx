@@ -27,8 +27,7 @@ interface CategoriaConClassificazione {
 }
 
 export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormProps) {
-  const [codiceFiscale, setCodiceFiscale] = useState("")
-  const [partitaIva, setPartitaIva] = useState("")
+  const [partitaIvaCf, setPartitaIvaCf] = useState("")
   const [ragioneSociale, setRagioneSociale] = useState("")
   const [indirizzo, setIndirizzo] = useState("")
   const [citta, setCitta] = useState("")
@@ -59,8 +58,8 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
   useEffect(() => {
     if (azienda) {
-      setCodiceFiscale(azienda.codice_fiscale || "")
-      setPartitaIva(azienda.partita_iva || "")
+      // Priorità al codice fiscale se presente, altrimenti partita IVA
+      setPartitaIvaCf(azienda.codice_fiscale || azienda.partita_iva || "")
       setRagioneSociale(azienda.ragione_sociale || "")
       setIndirizzo(azienda.indirizzo || "")
       setCitta(azienda.citta || "")
@@ -132,8 +131,9 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
 
     try {
       const aziendaData = {
-        codice_fiscale: codiceFiscale,
-        partita_iva: partitaIva,
+        // Salva lo stesso valore in entrambi i campi
+        codice_fiscale: partitaIvaCf,
+        partita_iva: partitaIvaCf,
         ragione_sociale: ragioneSociale,
         indirizzo,
         citta,
@@ -195,7 +195,8 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Dati Azienda</h3>
             
-            <div className="grid grid-cols-2 gap-4">
+            {/* Prima riga: Ragione Sociale e Partita IVA/CF */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ragione_sociale">Ragione Sociale *</Label>
                 <Input
@@ -206,37 +207,30 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="codice_fiscale">Codice Fiscale</Label>
+                <Label htmlFor="partita_iva_cf">Partita IVA/CF *</Label>
                 <Input
-                  id="codice_fiscale"
-                  value={codiceFiscale}
-                  onChange={(e) => setCodiceFiscale(e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="partita_iva">Partita IVA *</Label>
-                <Input
-                  id="partita_iva"
-                  value={partitaIva}
-                  onChange={(e) => setPartitaIva(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email_azienda">Email Azienda *</Label>
-                <Input
-                  id="email_azienda"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="partita_iva_cf"
+                  value={partitaIvaCf}
+                  onChange={(e) => setPartitaIvaCf(e.target.value)}
+                  placeholder="Inserisci Partita IVA o Codice Fiscale"
                   required
                 />
               </div>
             </div>
 
+            {/* Seconda riga: Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email_azienda">Email Azienda *</Label>
+              <Input
+                id="email_azienda"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Terza riga: Indirizzo */}
             <div className="space-y-2">
               <Label htmlFor="indirizzo">Indirizzo</Label>
               <Input
@@ -246,7 +240,8 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            {/* Quarta riga: Città, Provincia, CAP */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="citta">Città</Label>
                 <Input
@@ -273,7 +268,8 @@ export function AziendaForm({ azienda, userId, onClose, onSave }: AziendaFormPro
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Quinta riga: Regione e Telefono */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="regione">Regione *</Label>
                 <Input
